@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Web Fun</title>
+  <meta charset="utf-8">
+  <!--<link rel="shortcut icon" href="/favicon.png"> -->
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+  <script src="//europa.kradradio.com:8040/mootools-core-1.4.5-full-nocompat.js"></script>
+  <script src="//europa.kradradio.com:8040/mootools-more-1.4.0.1.js"></script>
+
+  <script type="text/javascript" src="adapter.js"></script>
+
+  </head>
+
+<body>
+<div id='container'>
+<button id='start_media'>Chat</button>
+<div id='videos'>
+  <canvas id='canvas'></canvas>
+  <video id='remoteVideo'  autoplay></video>
+  <video id='localVideo'  autoplay muted style='visibility:hidden'></video>
+</div>
+</div>
+
+  <script>
+
+
+
+  var localVideo = document.querySelector('#localVideo');;
+  var remoteVideo = document.querySelector('#remoteVideo');
+  var canvas = document.querySelector('#canvas');
+  var context = this.canvas.getContext('2d');
+  var back = document.createElement('canvas');
+  var backcontext = this.back.getContext('2d');
+  var localStream;
+
+
+  localVideo.addEventListener('play', function() {
+    draw(localVideo, context, localVideo.clientWidth,
+     localVideo.clientHeight);
+  });
+
+
+  startMedia = function() {
+    var constraints = {video: true, audio: true};
+    getUserMedia(constraints, handleUserMedia, handleUserMediaError);
+    console.log('Getting user media with constraints', constraints);
+  }
+
+  function handleUserMedia(stream) {
+    console.log('Adding local stream.');
+    if (localVideo == null) {
+      localVideo = document.querySelector('#localVideo');
+    }
+    attachMediaStream(localVideo, stream);
+    localStream = stream;
+  }
+
+  var oldData;
+
+  function draw(v,c,w,h) {
+
+    try {
+      if (canvas.width != localVideo.clientWidth) {
+        canvas.width = localVideo.clientWidth;
+        canvas.height = localVideo.clientHeight;
+        canvas.style.width = localVideo.clientWidth +'px';
+        canvas.style.height = localVideo.clientHeight + 'px';
+      }
+      c.drawImage(v,0,0,canvas.width,canvas.height);
+      canvas.style.MozAnimationPlayState = 'running';
+      var imgData = c.getImageData(0, 0, canvas.width,
+       canvas.height);
+      oldData = oldData ? oldData : imgData;
+      for (var i=0;i<imgData.data.length;i+=4) {
+        imgData.data[i]=oldData.data[i]-imgData.data[i];
+        imgData.data[i+1]=oldData.data[i+1]-imgData.data[i+1];
+        imgData.data[i+2]=oldData.data[i+2]-imgData.data[i+2];
+        imgData.data[i+3]=255;
+      }
+      oldData = c.getImageData(0,0,canvas.width,canvas.height);
+      c.putImageData(imgData, 0, 0);
+    } catch (e) {
+      if (e.name != "NS_ERROR_NOT_AVAILABLE") {
+        throw e;
+      }
+    }
+
+    setTimeout(draw,20,v,context,canvas.width,canvas.height);
+  }
+
+  function handleUserMediaError(error){
+    console.log('navigator.getUserMedia error: ', error);
+  }
+
+  startMedia();
+
+  </script>
+ 
+</body>
+</html>
