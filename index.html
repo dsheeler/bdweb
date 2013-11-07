@@ -9,6 +9,8 @@
   <script src="//europa.kradradio.com:8040/mootools-core-1.4.5-full-nocompat.js"></script>
   <script src="//europa.kradradio.com:8040/mootools-more-1.4.0.1.js"></script>
 
+  <script type="text/javascript" src="ccv.js"></script>
+  <script type="text/javascript" src="face.js"></script>
   <script type="text/javascript" src="adapter.js"></script>
 
   </head>
@@ -18,6 +20,7 @@
 <button id='start_media'>Chat</button>
 <div id='videos'>
   <canvas id='canvas'></canvas>
+  <canvas id='output'></canvas>
   <video id='remoteVideo'  autoplay></video>
   <video id='localVideo'  autoplay muted style='visibility:hidden'></video>
 </div>
@@ -70,17 +73,14 @@
       }
       c.drawImage(v,0,0,canvas.width,canvas.height);
       canvas.style.MozAnimationPlayState = 'running';
-      var imgData = c.getImageData(0, 0, canvas.width,
-       canvas.height);
-      oldData = oldData ? oldData : imgData;
-      for (var i=0;i<imgData.data.length;i+=4) {
-        imgData.data[i]=oldData.data[i]-imgData.data[i];
-        imgData.data[i+1]=oldData.data[i+1]-imgData.data[i+1];
-        imgData.data[i+2]=oldData.data[i+2]-imgData.data[i+2];
-        imgData.data[i+3]=255;
-      }
-      oldData = c.getImageData(0,0,canvas.width,canvas.height);
-      c.putImageData(imgData, 0, 0);
+ 			var comp = ccv.detect_objects({ "canvas" : ccv.grayscale(canvas),
+											"cascade" : cascade,
+											"interval" : 5,
+											"min_neighbors" : 1 });
+			post(comp);
+     //var imgData = c.getImageData(0, 0, canvas.width,
+      // canvas.height);
+      //c.putImageData(imgData, 0, 0);
     } catch (e) {
       if (e.name != "NS_ERROR_NOT_AVAILABLE") {
         throw e;
@@ -93,6 +93,22 @@
   function handleUserMediaError(error){
     console.log('navigator.getUserMedia error: ', error);
   }
+
+
+	function post(comp) {
+			var ctx = context;
+      var scale = 1;
+      ctx.lineWidth = 2;
+			ctx.strokeStyle = 'rgba(230,87,0,0.8)';
+			/* draw detected area */
+			for (var i = 0; i < comp.length; i++) {
+				ctx.beginPath();
+				ctx.arc((comp[i].x + comp[i].width * 0.5) * scale, (comp[i].y + comp[i].height * 0.5) * scale,
+						(comp[i].width + comp[i].height) * 0.25 * scale * 1.2, 0, Math.PI * 2);
+				ctx.stroke();
+			}
+	}
+
 
   startMedia();
 
