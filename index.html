@@ -17,12 +17,11 @@
 
 <body>
 <div id='container'>
-<button id='start_media'>Chat</button>
 <div id='videos'>
   <canvas id='canvas' style='visibility:hidden'></canvas>
   <canvas id='output'></canvas>
   <video id='remoteVideo'  autoplay></video>
-  <video id='localVideo'  autoplay muted style='visibility:hidden'></video>
+  <video id='localVideo'  autoplay style='visibility:hidden'></video>
 </div>
 </div>
 
@@ -58,7 +57,7 @@
     }
     attachMediaStream(localVideo, stream);
     localStream = stream;
-  }
+   }
 
   var oldData;
 
@@ -110,17 +109,38 @@
 			ctx.strokeStyle = 'rgba(230,87,0,0.8)';
 			/* draw detected area */
 			for (var i = 0; i < comp.length; i++) {
-				ctx.beginPath();
+	      playTone();      
+        ctx.beginPath();
 				ctx.arc((comp[i].x + comp[i].width * 0.5) * scale, (comp[i].y + comp[i].height * 0.5) * scale,
 						(comp[i].width + comp[i].height) * 0.25 * scale * 1.2, 0, Math.PI * 2);
 				ctx.stroke();
 			}
 	}
 
+window.onload = init;
+var aContext;
+function init() {
+  aContext = new AudioContext();
+  playTone();
+}
 
-  startMedia();
+function playTone() {
+  var ctx = aContext;
+  var o = ctx.createOscillator();
+  var g = ctx.createGain();
+  o.frequency.value = 440;
+  o.type = "triangle";
+  o.connect(g);
+  g.connect(ctx.destination);
+  g.gain.setValueAtTime(0.0,ctx.currentTime);
+  o.start(ctx.currentTime);
+  g.gain.linearRampToValueAtTime(0.7, ctx.currentTime+0.1);
+  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.2);
+  g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+1.0);
+}
 
-  </script>
+startMedia();
+ </script>
  
 </body>
 </html>
