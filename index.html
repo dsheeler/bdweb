@@ -19,7 +19,7 @@
 <div id='container'>
 <button id='start_media'>Chat</button>
 <div id='videos'>
-  <canvas id='canvas'></canvas>
+  <canvas id='canvas' style='visibility:hidden'></canvas>
   <canvas id='output'></canvas>
   <video id='remoteVideo'  autoplay></video>
   <video id='localVideo'  autoplay muted style='visibility:hidden'></video>
@@ -32,10 +32,10 @@
 
   var localVideo = document.querySelector('#localVideo');;
   var remoteVideo = document.querySelector('#remoteVideo');
-  var canvas = document.querySelector('#canvas');
-  var context = this.canvas.getContext('2d');
-  var back = document.createElement('canvas');
-  var backcontext = this.back.getContext('2d');
+  var output = document.querySelector('#output');
+  var oContext = output.getContext('2d');
+  var canvas = document.createElement('canvas');
+  var context = canvas.getContext('2d');
   var localStream;
 
 
@@ -62,17 +62,25 @@
 
   var oldData;
 
-  function draw(v,c,w,h) {
+  function draw(v) {
 
     try {
-      if (canvas.width != localVideo.clientWidth) {
-        canvas.width = localVideo.clientWidth;
-        canvas.height = localVideo.clientHeight;
-        canvas.style.width = localVideo.clientWidth +'px';
-        canvas.style.height = localVideo.clientHeight + 'px';
+      if (canvas.width != localVideo.clientWidth/4) {
+        canvas.width = localVideo.clientWidth/4;
+        canvas.height = localVideo.clientHeight/4;
+        canvas.style.width = localVideo.clientWidth/4 +'px';
+        canvas.style.height = localVideo.clientHeight/4 + 'px';
       }
-      c.drawImage(v,0,0,canvas.width,canvas.height);
-      canvas.style.MozAnimationPlayState = 'running';
+      if (output.width != localVideo.clientWidth) {
+        output.width = localVideo.clientWidth;
+        output.height = localVideo.clientHeight;
+        output.style.width = localVideo.clientWidth +'px';
+        output.style.height = localVideo.clientHeight + 'px';
+      }
+
+      context.drawImage(v,0,0,canvas.width,canvas.height);
+      oContext.drawImage(v,0,0,output.width,output.height);
+      output.style.MozAnimationPlayState = 'running';
  			var comp = ccv.detect_objects({ "canvas" : ccv.grayscale(canvas),
 											"cascade" : cascade,
 											"interval" : 5,
@@ -87,7 +95,7 @@
       }
     }
 
-    setTimeout(draw,20,v,context,canvas.width,canvas.height);
+    setTimeout(draw,20,v);
   }
 
   function handleUserMediaError(error){
@@ -96,8 +104,8 @@
 
 
 	function post(comp) {
-			var ctx = context;
-      var scale = 1;
+			var ctx = oContext;
+      var scale = 4.0;
       ctx.lineWidth = 2;
 			ctx.strokeStyle = 'rgba(230,87,0,0.8)';
 			/* draw detected area */
