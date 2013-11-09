@@ -12,6 +12,7 @@
   <script type="text/javascript" src="ccv.js"></script>
   <script type="text/javascript" src="face.js"></script>
   <script type="text/javascript" src="adapter.js"></script>
+  <script type="text/javascript" src="filters.js"></script>
   <script>
 
 window.onload = init;
@@ -22,13 +23,16 @@ var oConext;
 var canvas;
 
 function init() {
-  var localVideo = document.querySelector('#localVideo');;
+  var localVideo = document.querySelector('#localVideo');
   var output = document.querySelector('#output');
   oContext = output.getContext('2d');
   canvas = document.createElement('canvas');
   context = canvas.getContext('2d');
   var localStream;
-
+  var spectrumCanvas = document.querySelector('#spectrum');
+  spectrumCanvas.style.width = '640px';
+  spectrumCanvas.style.height = '480px';
+  
   localVideo.addEventListener('play', function() {
     draw(localVideo, context, localVideo.clientWidth,
      localVideo.clientHeight);
@@ -36,7 +40,7 @@ function init() {
 
   startMedia();
 
-  var actxCall = AudioContext;
+  var actxCall = window.webkitAudioContext || window.AudioContext;
   aContext = new actxCall();
   playTone(80);
 }
@@ -52,11 +56,21 @@ function handleUserMedia(stream) {
   if (localVideo == null) {
     localVideo = document.querySelector('#localVideo');
   }
+
+  var sBox = new SpectrumBox(512, 128, 'spectrum', aContext, SpectrumBox.Types.TIME);
+  var ctx = sBox.getCanvasContext();
+  ctx.fillStyle = 'rgb(50,100,200)';
+  ctx.width = 640;
+  ctx.height = 480;
+  var microphone = aContext.createMediaStreamSource(stream);
+  microphone.connect(sBox.getAudioNode());
+  sBox.enable();
   attachMediaStream(localVideo, stream);
   localStream = stream;
 }
 
 function playTone(freq) {
+
   var ctx = aContext;
   var o = ctx.createOscillator();
   var g = ctx.createGain();
@@ -66,9 +80,10 @@ function playTone(freq) {
   g.connect(ctx.destination);
   g.gain.setValueAtTime(0.0,ctx.currentTime);
   o.start(ctx.currentTime);
-  g.gain.linearRampToValueAtTime(0.7, ctx.currentTime+0.1);
-  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.2);
-  g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+1.0);
+  g.gain.linearRampToValueAtTime(0.7, ctx.currentTime+0.05);
+  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.1);
+  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.35);
+  g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+0.4);
 }
 
 function draw(v) {
@@ -86,15 +101,15 @@ function draw(v) {
       output.style.height = localVideo.clientHeight + 'px';
     }
 
-    context.drawImage(v,0,0,canvas.width,canvas.height);
+    /*context.drawImage(v,0,0,canvas.width,canvas.height);*/
     oContext.drawImage(v,0,0,output.width,output.height);
     output.style.MozAnimationPlayState = 'running';
-		var comp = ccv.detect_objects({ "canvas" : ccv.grayscale(canvas),
+		/*var comp = ccv.detect_objects({ "canvas" : ccv.grayscale(canvas),
      "cascade" : cascade,
 		 "interval" : 5,
 		 "min_neighbors" : 1 
      });
-		post(comp);
+		post(comp);*/
   } catch (e) {
     if (e.name != "NS_ERROR_NOT_AVAILABLE") {
       throw e;
@@ -125,6 +140,148 @@ function post(comp) {
   }
 }
 
+/*
+   SpectrumBox - A JavaScript spectral analyzer.
+   Mohit Cheppudira - 0xfe.blogspot.com
+*/
+
+/**
+  @constructor
+  Create an n-point FFT based spectral analyzer.
+
+  @param num_points - Number of points for transform.
+  @param num_bins - Number of bins to show on canvas.
+  @param canvas_id - Canvas element ID.
+  @param audio_context - An AudioContext instance.
+*/
+SpectrumBox = function(num_points, num_bins, canvas_id, audio_context, type) {
+  this.init(num_points, num_bins, canvas_id, audio_context, type);
+}
+
+SpectrumBox.Types = {
+  FREQUENCY: 1,
+  TIME: 2
+}
+
+SpectrumBox.prototype.init = function(
+    num_points, num_bins,
+    canvas_id, audio_context, type) {
+  this.num_bins = num_bins;
+  this.num_points = num_points;
+  this.canvas_id = canvas_id;
+  this.update_rate_ms = 50;
+  this.smoothing = 0.75;
+  this.type = type || SpectrumBox.Types.FREQUENCY;
+
+  // Number of points we actually want to display. If zero, display all points.
+  this.valid_points = 0;
+
+  // Determine the boundaries of the canvas.
+  this.canvas = document.getElementById(canvas_id);
+  this.width = this.canvas.width;
+  this.height = this.canvas.height;
+  if (this.type == SpectrumBox.Types.FREQUENCY) {
+    this.bar_spacing = 3;
+  } else {
+    this.bar_spacing = 1;
+  }
+
+  this.ctx = this.canvas.getContext('2d');
+  this.actx = audio_context;
+
+  // Create the spectral analyzer
+  this.fft = this.actx.createAnalyser();
+  this.fft.fftSize = this.num_points;
+  this.data = new Uint8Array(this.fft.frequencyBinCount);
+}
+
+/* Returns the AudioNode of the FFT. You can route signals into this. */
+SpectrumBox.prototype.getAudioNode = function() {
+  return this.fft;
+}
+
+/* Returns the canvas' 2D context. Use this to configure the look
+   of the display. */
+SpectrumBox.prototype.getCanvasContext = function() {
+  return this.ctx;
+}
+
+/* Set the number of points to work with. */
+SpectrumBox.prototype.setValidPoints = function(points) {
+  this.valid_points = points;
+  return this;
+}
+
+/* Set the domain type for the graph (TIME / FREQUENCY. */
+SpectrumBox.prototype.setType = function(type) {
+  this.type = type;
+  return this;
+}
+
+/* Enable the analyzer. Starts drawing stuff on the canvas. */
+SpectrumBox.prototype.enable = function() {
+  var that = this;
+  if (!this.intervalId) {
+    this.intervalId = window.setInterval(
+        function() { that.update(); }, this.update_rate_ms);
+  }
+  return this;
+}
+
+/* Disable the analyzer. Stops drawing stuff on the canvas. */
+SpectrumBox.prototype.disable = function() {
+  if (this.intervalId) {
+    window.clearInterval(this.intervalId);
+    this.intervalId = undefined;
+  }
+  return this;
+}
+
+/* Updates the canvas display. */
+SpectrumBox.prototype.update = function() {
+  // Get the frequency samples
+  data = this.data;
+  if (this.type == SpectrumBox.Types.FREQUENCY) {
+    this.fft.smoothingTimeConstant = this.smoothing;
+    this.fft.getByteFrequencyData(data);
+  } else {
+    this.fft.smoothingTimeConstant = 0;
+    this.fft.getByteFrequencyData(data);
+    this.fft.getByteTimeDomainData(data);
+  }
+
+  var length = data.length;
+  if (this.valid_points > 0) length = this.valid_points;
+
+  // Clear canvas then redraw graph.
+  this.ctx.clearRect(0, 0, this.width, this.height);
+
+  // Break the samples up into bins
+  var bin_size = Math.floor(length / this.num_bins);
+  for (var i=0; i < this.num_bins; ++i) {
+    var sum = 0;
+    for (var j=0; j < bin_size; ++j) {
+      sum += data[(i * bin_size) + j];
+    }
+
+    // Calculate the average frequency of the samples in the bin
+    var average = sum / bin_size;
+
+    // Draw the bars on the canvas
+    var bar_width = this.width / this.num_bins;
+    var scaled_average = (average / 256) * this.height;
+   
+    if (this.type == SpectrumBox.Types.FREQUENCY) {
+      this.ctx.fillRect(
+        i * bar_width, this.height,
+        bar_width - this.bar_spacing, -scaled_average);
+    } else {
+      this.ctx.fillRect(
+        i * bar_width, this.height - scaled_average + 2,
+        bar_width - this.bar_spacing, -1);
+    }
+  }
+}
 
 </script>
 
@@ -133,9 +290,10 @@ function post(comp) {
 <body>
   <div id='container'>
     <div id='videos'>
-      <canvas id='canvas' style='visibility:hidden'></canvas>
       <canvas id='output'></canvas>
-      <video id='localVideo'  autoplay style='visibility:hidden'></video>
+      <canvas id='spectrum'></canvas>
+      <canvas id='canvas' style='visibility:hidden'></canvas>
+      <video id='localVideo'  autoplay muted style='visibility:hidden'></video>
     </div>
   </div>
 </body>
