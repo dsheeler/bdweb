@@ -109,7 +109,9 @@
 			ctx.strokeStyle = 'rgba(230,87,0,0.8)';
 			/* draw detected area */
 			for (var i = 0; i < comp.length; i++) {
-	      playTone();      
+	      var freq;
+        freq = 440 - comp[i].y;
+        playTone(freq);
         ctx.beginPath();
 				ctx.arc((comp[i].x + comp[i].width * 0.5) * scale, (comp[i].y + comp[i].height * 0.5) * scale,
 						(comp[i].width + comp[i].height) * 0.25 * scale * 1.2, 0, Math.PI * 2);
@@ -120,15 +122,16 @@
 window.onload = init;
 var aContext;
 function init() {
-  aContext = new AudioContext();
-  playTone();
+  var actxCall = AudioContext;
+  aContext = new actxCall();
+  playTone(440);
 }
 
-function playTone() {
+function playTone(freq) {
   var ctx = aContext;
   var o = ctx.createOscillator();
   var g = ctx.createGain();
-  o.frequency.value = 440;
+  o.frequency.value = parseInt(freq);
   o.type = "triangle";
   o.connect(g);
   g.connect(ctx.destination);
