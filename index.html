@@ -12,126 +12,55 @@
   <script type="text/javascript" src="ccv.js"></script>
   <script type="text/javascript" src="face.js"></script>
   <script type="text/javascript" src="adapter.js"></script>
-
-  </head>
-
-<body>
-<div id='container'>
-<div id='videos'>
-  <canvas id='canvas' style='visibility:hidden'></canvas>
-  <canvas id='output'></canvas>
-  <video id='remoteVideo'  autoplay></video>
-  <video id='localVideo'  autoplay style='visibility:hidden'></video>
-</div>
-</div>
-
   <script>
 
+window.onload = init;
 
+var aContext;
+var context;
+var oConext;
+var canvas;
 
+function init() {
   var localVideo = document.querySelector('#localVideo');;
-  var remoteVideo = document.querySelector('#remoteVideo');
   var output = document.querySelector('#output');
-  var oContext = output.getContext('2d');
-  var canvas = document.createElement('canvas');
-  var context = canvas.getContext('2d');
+  oContext = output.getContext('2d');
+  canvas = document.createElement('canvas');
+  context = canvas.getContext('2d');
   var localStream;
-
 
   localVideo.addEventListener('play', function() {
     draw(localVideo, context, localVideo.clientWidth,
      localVideo.clientHeight);
   });
 
+  startMedia();
 
-  startMedia = function() {
-    var constraints = {video: true, audio: true};
-    getUserMedia(constraints, handleUserMedia, handleUserMediaError);
-    console.log('Getting user media with constraints', constraints);
-  }
-
-  function handleUserMedia(stream) {
-    console.log('Adding local stream.');
-    if (localVideo == null) {
-      localVideo = document.querySelector('#localVideo');
-    }
-    attachMediaStream(localVideo, stream);
-    localStream = stream;
-   }
-
-  var oldData;
-
-  function draw(v) {
-
-    try {
-      if (canvas.width != localVideo.clientWidth/4) {
-        canvas.width = localVideo.clientWidth/4;
-        canvas.height = localVideo.clientHeight/4;
-        canvas.style.width = localVideo.clientWidth/4 +'px';
-        canvas.style.height = localVideo.clientHeight/4 + 'px';
-      }
-      if (output.width != localVideo.clientWidth) {
-        output.width = localVideo.clientWidth;
-        output.height = localVideo.clientHeight;
-        output.style.width = localVideo.clientWidth +'px';
-        output.style.height = localVideo.clientHeight + 'px';
-      }
-
-      context.drawImage(v,0,0,canvas.width,canvas.height);
-      oContext.drawImage(v,0,0,output.width,output.height);
-      output.style.MozAnimationPlayState = 'running';
- 			var comp = ccv.detect_objects({ "canvas" : ccv.grayscale(canvas),
-											"cascade" : cascade,
-											"interval" : 5,
-											"min_neighbors" : 1 });
-			post(comp);
-     //var imgData = c.getImageData(0, 0, canvas.width,
-      // canvas.height);
-      //c.putImageData(imgData, 0, 0);
-    } catch (e) {
-      if (e.name != "NS_ERROR_NOT_AVAILABLE") {
-        throw e;
-      }
-    }
-
-    setTimeout(draw,20,v);
-  }
-
-  function handleUserMediaError(error){
-    console.log('navigator.getUserMedia error: ', error);
-  }
-
-
-	function post(comp) {
-			var ctx = oContext;
-      var scale = 4.0;
-      ctx.lineWidth = 2;
-			ctx.strokeStyle = 'rgba(230,87,0,0.8)';
-			/* draw detected area */
-			for (var i = 0; i < comp.length; i++) {
-	      var freq;
-        freq = 440 - comp[i].y;
-        playTone(freq);
-        ctx.beginPath();
-				ctx.arc((comp[i].x + comp[i].width * 0.5) * scale, (comp[i].y + comp[i].height * 0.5) * scale,
-						(comp[i].width + comp[i].height) * 0.25 * scale * 1.2, 0, Math.PI * 2);
-				ctx.stroke();
-			}
-	}
-
-window.onload = init;
-var aContext;
-function init() {
   var actxCall = AudioContext;
   aContext = new actxCall();
-  playTone(440);
+  playTone(80);
+}
+
+function startMedia() {
+  var constraints = {video: true, audio: true};
+  getUserMedia(constraints, handleUserMedia, handleUserMediaError);
+  console.log('Getting user media with constraints', constraints);
+}
+
+function handleUserMedia(stream) {
+  console.log('Adding local stream.');
+  if (localVideo == null) {
+    localVideo = document.querySelector('#localVideo');
+  }
+  attachMediaStream(localVideo, stream);
+  localStream = stream;
 }
 
 function playTone(freq) {
   var ctx = aContext;
   var o = ctx.createOscillator();
   var g = ctx.createGain();
-  o.frequency.value = parseInt(freq);
+  o.frequency.value = freq;
   o.type = "triangle";
   o.connect(g);
   g.connect(ctx.destination);
@@ -142,8 +71,72 @@ function playTone(freq) {
   g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+1.0);
 }
 
-startMedia();
- </script>
- 
+function draw(v) {
+  try {
+    if (canvas.width != localVideo.clientWidth/4) {
+      canvas.width = localVideo.clientWidth/4;
+      canvas.height = localVideo.clientHeight/4;
+      canvas.style.width = localVideo.clientWidth/4 +'px';
+      canvas.style.height = localVideo.clientHeight/4 + 'px';
+    }
+    if (output.width != localVideo.clientWidth) {
+      output.width = localVideo.clientWidth;
+      output.height = localVideo.clientHeight;
+      output.style.width = localVideo.clientWidth +'px';
+      output.style.height = localVideo.clientHeight + 'px';
+    }
+
+    context.drawImage(v,0,0,canvas.width,canvas.height);
+    oContext.drawImage(v,0,0,output.width,output.height);
+    output.style.MozAnimationPlayState = 'running';
+		var comp = ccv.detect_objects({ "canvas" : ccv.grayscale(canvas),
+     "cascade" : cascade,
+		 "interval" : 5,
+		 "min_neighbors" : 1 
+     });
+		post(comp);
+  } catch (e) {
+    if (e.name != "NS_ERROR_NOT_AVAILABLE") {
+      throw e;
+    }
+  }
+
+  setTimeout(draw,20,v);
+}
+
+function handleUserMediaError(error){
+  console.log('navigator.getUserMedia error: ', error);
+}
+
+function post(comp) {
+  var ctx = oContext;
+  var scale = 4.0;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(230,87,0,0.8)';
+	/* draw detected area */
+	for (var i = 0; i < comp.length; i++) {
+    var freq;
+    freq = 440 - comp[i].y;
+    playTone(freq);
+    ctx.beginPath();
+    ctx.arc((comp[i].x + comp[i].width * 0.5) * scale, (comp[i].y + comp[i].height * 0.5) * scale,
+     (comp[i].width + comp[i].height) * 0.25 * scale * 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+
+</script>
+
+</head>
+
+<body>
+  <div id='container'>
+    <div id='videos'>
+      <canvas id='canvas' style='visibility:hidden'></canvas>
+      <canvas id='output'></canvas>
+      <video id='localVideo'  autoplay style='visibility:hidden'></video>
+    </div>
+  </div>
 </body>
 </html>
