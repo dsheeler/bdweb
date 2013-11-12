@@ -18,7 +18,15 @@ var aContext;
 var oConext;
 var output;
 var localVideo;
-
+var points = [];
+var xLoc,yLoc,mag;
+xLoc = 0;
+yLoc = 0;
+var xMin,xMax,yMin,yMax;
+xMin = 0;
+xMax = 640;
+yMin = 0;
+yMax = 480;
 
 function init() {
   localVideo = document.querySelector('#localVideo');;
@@ -85,28 +93,43 @@ var threshold = 75;
       var imgData = c.getImageData(0, 0, output.width,
        output.height);
       oldData = oldData ? oldData : imgData;
-      var xLoc,yLoc,mag;
-      xLoc = -1.0;
-      yLoc = -1.0;
-      for(var i=0; i<output.height; i++) {
-       for(var j=0; j<output.width; j++) {
+        
+      for(var i=yMin; i<yMax; i++) {
+       for(var j=xMin; j<xMax; j++) {
          var idx = j + (i * output.width * 4.0);
          if(oldData.data[idx+1] - imgData.data[idx+1] > threshold || oldData.data[idx+2] - imgData.data[idx+2] > threshold || oldData.data[idx+3] - imgData.data[idx+3] > threshold) {
-	   if(j != xLoc || i != yLoc) {
 		xLoc = j;
            	yLoc = i;
+                console.log("About to push point:",xLoc,yLoc);
+		points.push({'x':xLoc, 'y':yLoc});
            	mag = Math.sqrt((xLoc*xLoc)+(yLoc*yLoc));
            	playTone(mag*0.5);
+                if(j > output.width/2 && j > xMin) {
+		   xMin = (output.width/2)/2;
+		   xMax = output.width;
+		   console.log("RIGHT DETCTED");
+		}
+                if(j < output.width/2 && j < xMax) {
+		    xMin = 0;
+	            xMax = output.width/2 + ((output.width/2)/2);
+		   console.log("LEFT DETCTED");
+		}
+                if(i < yMin)
+                  yMin = i;
+                if(i > yMax) 
+                  yMax = i;
 	   	i = output.height;
+		console.log("min max:",xMin,xMax,yMin,yMax);
 	   break;
            }
 	 }
-
        }
-      }
+      xLoc = 0;
+      yLoc = 0;
       oldData = c.getImageData(0,0,output.width,output.height);
       c.putImageData(imgData, 0, 0);
-      drawCircle(xLoc,yLoc);
+      //drawCircle(xLoc,yLoc);
+      drawLinePath();
     } catch (e) {
       if (e.name != "NS_ERROR_NOT_AVAILABLE") {
         throw e;
@@ -120,14 +143,27 @@ function handleUserMediaError(error){
   console.log('navigator.getUserMedia error: ', error);
 }
 
+function drawLinePath() {
+  console.log("Line Path size is %d",points.length);
+  if(points.length > 1) {
+  var ctx = oContext;
+  ctx.strokeStyle = 'rgba(230,87,0,0.8)';
+  ctx.beginPath();
+  for(var i=0; i<points.length; i++) {
+    if(i == 0) 
+      ctx.moveTo(points[i].x,points[i].y);
+    ctx.lineTo(points[i].x,points[i].y);
+  }
+  ctx.stroke();
+ }
+}
+
 function drawCircle(x,y) {
-  console.log("about ot get oContext!");
   var ctx = oContext;
   var scale = 4.0;
   ctx.lineWidth = 2;
   ctx.strokeStyle = 'rgba(230,87,0,0.8)';
   ctx.beginPath();
-  console.log("Stokeing cock with",x,y);
   ctx.arc(x,y,10,0,2.0*Math.PI);
   ctx.stroke();
 }
