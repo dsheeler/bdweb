@@ -13,20 +13,27 @@
   <script>
 
 window.onload = init;
+var oldData;
+var fuckData;
+var newData;
+var threshold = 75;
 
 var aContext;
 var oConext;
 var output;
 var localVideo;
 var points = [];
-var xLoc,yLoc,mag;
+var xLoc,yLoc,mag,circleCenterX,circleCenterY;
 xLoc = 0;
 yLoc = 0;
 var xMin,xMax,yMin,yMax;
 xMin = 0;
 xMax = 640;
-yMin = 0;
-yMax = 480;
+yMin = -1;
+yMax = -99999999;
+circleCenterX = 0;
+circleCenterY = 0;
+
 
 function init() {
   localVideo = document.querySelector('#localVideo');;
@@ -77,8 +84,6 @@ function playTone(freq) {
   g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+0.6);
 }
 
-var oldData;
-var threshold = 75;
   function draw(v,c,w,h) {
 
     try {
@@ -90,46 +95,31 @@ var threshold = 75;
       }
       c.drawImage(v,0,0,output.width,output.height);
       output.style.MozAnimationPlayState = 'running';
-      var imgData = c.getImageData(0, 0, output.width,
-       output.height);
-      oldData = oldData ? oldData : imgData;
-        
-      for(var i=yMin; i<yMax; i++) {
-       for(var j=xMin; j<xMax; j++) {
-         var idx = j + (i * output.width * 4.0);
-         if(oldData.data[idx+1] - imgData.data[idx+1] > threshold || oldData.data[idx+2] - imgData.data[idx+2] > threshold || oldData.data[idx+3] - imgData.data[idx+3] > threshold) {
-		xLoc = j;
-           	yLoc = i;
-                console.log("About to push point:",xLoc,yLoc);
-		points.push({'x':xLoc, 'y':yLoc});
-           	mag = Math.sqrt((xLoc*xLoc)+(yLoc*yLoc));
-           	playTone(mag*0.5);
-                if(j > output.width/2 && j > xMin) {
-		   xMin = (output.width/2)/2;
-		   xMax = output.width;
-		   console.log("RIGHT DETCTED");
-		}
-                if(j < output.width/2 && j < xMax) {
-		    xMin = 0;
-	            xMax = output.width/2 + ((output.width/2)/2);
-		   console.log("LEFT DETCTED");
-		}
-                if(i < yMin)
-                  yMin = i;
-                if(i > yMax) 
-                  yMax = i;
-	   	i = output.height;
-		console.log("min max:",xMin,xMax,yMin,yMax);
-	   break;
-           }
+      var imgData = c.getImageData(0, 0, output.width,output.height);
+      if(yMin != 1) {
+	oldData = {'data':[]};
+	console.log("Populating data arrau!",output.width,output.height);
+        for(var i=0; i<output.width*output.height*4; i++) {
+	  oldData.data[i] = imgData.data[i];
+         }
+      }
+      xMax = -9999;
+      for(var i=0; i<output.height; i++) {
+       for(var j=0; j<output.width; j++) {
+         var idx = (j + (i * output.width))*4;
+         imgData.data[idx] = imgData.data[idx+1] = imgData.data[idx+2] = imgData.data[idx]*0.3+imgData.data[idx+1]*0.59+imgData.data[idx+2]*0.1;
+	 var diff = oldData.data[idx] - imgData.data[idx];
+	 oldData.data[idx] = oldData.data[idx+1] = oldData.data[idx+2] = imgData.data[idx];
+	 imgData.data[idx] = imgData.data[idx+1] = imgData.data[idx+2] = diff;
 	 }
        }
+
       xLoc = 0;
       yLoc = 0;
-      oldData = c.getImageData(0,0,output.width,output.height);
       c.putImageData(imgData, 0, 0);
-      //drawCircle(xLoc,yLoc);
-      drawLinePath();
+      drawCircle(circleCenterX,circleCenterY);
+      //drawLinePath();
+      yMin = 1;
     } catch (e) {
       if (e.name != "NS_ERROR_NOT_AVAILABLE") {
         throw e;
@@ -164,6 +154,7 @@ function drawCircle(x,y) {
   ctx.lineWidth = 2;
   ctx.strokeStyle = 'rgba(230,87,0,0.8)';
   ctx.beginPath();
+  console.log("drawCircle:",x,y);
   ctx.arc(x,y,10,0,2.0*Math.PI);
   ctx.stroke();
 }
