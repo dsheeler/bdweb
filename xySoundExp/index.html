@@ -42,6 +42,7 @@ patchSums = {'data':[]};
 
 
 //parameters
+var baseTone = 440;
 numNeighborsX = 3;
 numNeighborsY = 3;
 radius = 8;
@@ -92,6 +93,46 @@ function setMooreNeighborHood() {
   }
 }
 
+function playFourChord(freq) {
+  var ctx = aContext;
+  var o = ctx.createOscillator();
+  var o1 = ctx.createOscillator();
+  var o2 = ctx.createOscillator();
+  var o3 = ctx.createOscillator();
+  var g = ctx.createGain();
+
+  o.frequency.value = freq;
+  o.type = "sawtooth";
+
+  o1.frequency.value = freq+17.5;
+  o1.type = "sawtooth";
+
+  o2.frequency.value = freq+23.5;
+  o2.type = "sawtooth";
+
+  o3.frequency.value = freq-40.5;
+  o3.type = "sawtooth";
+
+  
+
+  o.connect(g);
+  o1.connect(g);
+  o2.connect(g);
+  o3.connect(g);
+
+  g.connect(ctx.destination);
+  g.gain.setValueAtTime(0.0,ctx.currentTime);
+
+  o.start(ctx.currentTime);
+  o1.start(ctx.currentTime);
+  o2.start(ctx.currentTime);
+  o3.start(ctx.currentTime);
+
+  g.gain.linearRampToValueAtTime(0.25, ctx.currentTime+0.5);
+  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.75);
+  g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+1.00);
+}
+
 function playTone(freq) {
   var ctx = aContext;
   var o = ctx.createOscillator();
@@ -103,9 +144,9 @@ function playTone(freq) {
   g.connect(ctx.destination);
   g.gain.setValueAtTime(0.0,ctx.currentTime);
   o.start(ctx.currentTime);
-  g.gain.linearRampToValueAtTime(0.7, ctx.currentTime+0.1);
-  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.3);
-  g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+0.6);
+  g.gain.linearRampToValueAtTime(0.25, ctx.currentTime+0.5);
+  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.75);
+  g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+1.00);
 }
 
 
@@ -144,7 +185,7 @@ function playTone(freq) {
       //avg = sum/32;
       xLoc = 0;
       yLoc = 0;
-      c.putImageData(imgData, 0, 0);
+      //c.putImageData(imgData, 0, 0);
       setNewCenter();
       drawCircles();
       //drawCircle(radius,circleCenterX,circleCenterY);
@@ -194,7 +235,8 @@ function setNewCenter() {
 	  var xDiff = (circleCenterX - circleCentersX.data[i]);
 	  var yDiff = (circleCenterY - circleCentersY.data[i]);
 	  var magDiff = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
-          playTone(magDiff);
+	  baseTone = xDiff+yDiff+baseTone;
+	  playTone(baseTone);
 	  circleCenterX = circleCentersX.data[i];
           circleCenterY = circleCentersY.data[i];
 	  setMooreNeighborHood();
