@@ -10,6 +10,7 @@
   <script src="//europa.kradradio.com:8040/mootools-more-1.4.0.1.js"></script>
 
   <script type="text/javascript" src="adapter.js"></script>
+  <script type="text/javascript" src="sinewave.js"></script>
   <script>
 
 window.onload = init;
@@ -47,7 +48,7 @@ xMin = 99999;
 xMax = -99999;
 yMin = 99999;
 yMax = -99999;
-
+var aSineWave;
 
 
 //parameters
@@ -73,6 +74,7 @@ function init() {
 
   var actxCall = AudioContext;
   aContext = new actxCall();
+  aSineWave = new SineWave(aContext);
   //setMooreNeighborHood(80);
   layout5Instrument();
   //playTone(80);
@@ -208,7 +210,7 @@ function playFourChord(freq) {
 
   g.gain.linearRampToValueAtTime(0.25, ctx.currentTime+0.5);
   g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.75);
-  g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+1.00);
+  g.gain.linearRampToValueAtTime(0.75, ctx.currentTime+1.00);
 }
 
 function playTone(freq) {
@@ -229,6 +231,7 @@ function playTone(freq) {
 
 
   function draw(v,c,w,h) {
+    
     try {
       if (output.width != localVideo.clientWidth) {
         output.width = localVideo.clientWidth;
@@ -328,8 +331,11 @@ function playMaxPatch() {
         playIdx = i;
      }
   }
-  if(playIdx != -1 && max > tol)
-    playTone(patchTones.data[playIdx]);
+  if(playIdx != -1 && max > tol) {
+    aSineWave.setFrequency(patchTones.data[playIdx]);
+    aSineWave.play();
+    //playTone(patchTones.data[playIdx]);
+  }
   playIdx = -1;
 
 }
