@@ -51,7 +51,7 @@ yMax = -99999;
 
 
 //parameters
-var baseTone = 240;
+var baseTone = 140;
 var playIdx = -1;
 numNeighborsX = 5;
 numNeighborsY = 1;
@@ -216,15 +216,15 @@ function playTone(freq) {
   var o = ctx.createOscillator();
   var g = ctx.createGain();
   o.frequency.value = freq;
-  o.type = "sawtooth";
+  o.type = "triangle";
 
   o.connect(g);
   g.connect(ctx.destination);
   g.gain.setValueAtTime(0.0,ctx.currentTime);
   o.start(ctx.currentTime);
-  g.gain.linearRampToValueAtTime(0.25, ctx.currentTime+0.5);
-  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.75);
-  g.gain.linearRampToValueAtTime(0.0, ctx.currentTime+1.00);
+  g.gain.linearRampToValueAtTime(0.25, ctx.currentTime+1.0);
+  g.gain.linearRampToValueAtTime(1.0, ctx.currentTime+2.0);
+  g.gain.linearRampToValueAtTime(2.0, ctx.currentTime+3.00);
 }
 
 
