@@ -36,18 +36,28 @@ var numNeighborsY;
 var circleCentersX;
 var circleCentersY;
 var patchSums;
+var oldDataCheck = -1;
 circleCentersX = {'data':[]};
 circleCentersY = {'data':[]};
 patchSums = {'data':[]};
+patchTones = {'data':[]};
+var changeMinMax = false;
+var frameCount = 3;
+xMin = 99999;
+xMax = -99999;
+yMin = 99999;
+yMax = -99999;
+
 
 
 //parameters
-var baseTone = 440;
-numNeighborsX = 3;
-numNeighborsY = 3;
-radius = 8;
-circleCenterX = 320;
-circleCenterY = 240;
+var baseTone = 240;
+var playIdx = -1;
+numNeighborsX = 5;
+numNeighborsY = 1;
+radius = 20;
+circleCenterX = 30;
+circleCenterY = 30;
 
 function init() {
   localVideo = document.querySelector('#localVideo');;
@@ -63,8 +73,9 @@ function init() {
 
   var actxCall = AudioContext;
   aContext = new actxCall();
-  setMooreNeighborHood();
-  playTone(80);
+  //setMooreNeighborHood(80);
+  layout5Instrument();
+  //playTone(80);
 }
 
 function startMedia() {
@@ -82,16 +93,83 @@ function handleUserMedia(stream) {
   localStream = stream;
 }
 
-function setMooreNeighborHood() {
+function setMooreNeighborHood(tone) {
   var mult = 2.0;
+  changeMinMax = false;
   for(var i=0; i<numNeighborsY; i++) {
    for(var j=0; j<numNeighborsX; j++) {
 	var idx = j + (i * numNeighborsX);
 	circleCentersX.data[idx] = circleCenterX + ((j-1)*(radius*mult));
 	circleCentersY.data[idx] = circleCenterY + ((i-1)*(radius*mult));
+	if(circleCentersX.data[idx] < xMin) {
+		xMin = circleCentersX.data[idx];
+		changeMinMax = true;
+        }
+	if(circleCentersX.data[idx] > xMax) {
+                xMax = circleCentersX.data[idx];
+		changeMinMax = true;
+        }
+	if(circleCentersY.data[idx] < yMin) {
+                yMin = circleCentersY.data[idx];
+		changeMinMax = true;
+        }
+        if(circleCentersY.data[idx] > yMax) {
+                yMax = circleCentersY.data[idx];
+		changeMinMax = true;
+        }
    }
   }
 }
+
+function layoutInstrument() {
+  var mult = 10.0;
+  var newTone = 0.0;
+  var prevTone = baseTone;
+  for(var i=0; i<numNeighborsY; i++) {
+	prevTone = prevTone + 20;
+   for(var j=0; j<numNeighborsX; j++) {
+        var idx = j + (i * numNeighborsX);
+        circleCentersX.data[idx] = circleCenterX + (j*(radius*mult));
+        circleCentersY.data[idx] = circleCenterY + (i*(radius*mult));
+        
+        newTone = prevTone + (1.0595*3);
+        patchTones[idx] = newTone;
+        prevTone = newTone;
+        console.log("Setting cirlce:",idx,newTone,circleCentersX.data[idx],circleCentersY.data[idx]);
+     }
+   }
+}
+
+function layout5Instrument() {
+  var mult = 10.0;
+  var newTone = 0.0;
+  var prevTone = baseTone;
+  circleCentersX.data[0] = 320;
+  circleCentersY.data[0] = 240;
+  patchTones.data[0] = baseTone;
+
+  circleCentersX.data[1] = 64;
+  circleCentersY.data[1] = 64;
+  patchTones.data[1] = baseTone * Math.pow(1.0595,4.0);
+
+  circleCentersX.data[2] = 576;
+  circleCentersY.data[2] = 64;
+  patchTones.data[2] = baseTone * Math.pow(1.0595,5.0);
+
+  circleCentersX.data[3] = 64;
+  circleCentersY.data[3] = 416;
+  patchTones.data[3] = baseTone * Math.pow(1.0595,7.0);
+
+  circleCentersX.data[4] = 576;
+  circleCentersY.data[4] = 416;
+  patchTones.data[4] = baseTone * Math.pow(1.0595,11.0);
+
+  for(var i=0; i<5; i++) {
+   console.log("Tones are:",patchTones.data[i]);
+  }
+
+}
+
 
 function playFourChord(freq) {
   var ctx = aContext;
@@ -151,7 +229,6 @@ function playTone(freq) {
 
 
   function draw(v,c,w,h) {
-
     try {
       if (output.width != localVideo.clientWidth) {
         output.width = localVideo.clientWidth;
@@ -162,16 +239,12 @@ function playTone(freq) {
       c.drawImage(v,0,0,output.width,output.height);
       output.style.MozAnimationPlayState = 'running';
       var imgData = c.getImageData(0, 0, output.width,output.height);
-      if(yMin != 1) {
+      if(oldDataCheck != 1) {
 	oldData = {'data':[]};
         for(var i=0; i<output.width*output.height*4; i++) {
 	  oldData.data[i] = imgData.data[i];
          }
       }
-      xMax = -9999;
-	var sum = 0.0;
-	var avg = 0.0;
-        
       for(var i=0; i<output.height; i++) {
        for(var j=0; j<output.width; j++) {
          var idx = (j + (i * output.width))*4;
@@ -182,24 +255,22 @@ function playTone(freq) {
          findMaxChangeInNeighborHood(j,i,diff);
 	 }
        }
-      //avg = sum/32;
-      xLoc = 0;
-      yLoc = 0;
-      //c.putImageData(imgData, 0, 0);
-      setNewCenter();
+      //setNewCenter();
       drawCircles();
       //drawCircle(radius,circleCenterX,circleCenterY);
-
+      if(playIdx == -1)
+	 playMaxPatch();
       //drawLinePath();
-      yMin = 1;
+      oldDataCheck = 1;
       resetSums();
     } catch (e) {
       if (e.name != "NS_ERROR_NOT_AVAILABLE") {
         throw e;
       }
     }
-
+    frameCount++;
     setTimeout(draw,20,v,oContext,output.width,output.height);
+   
   }
 
 function resetSums() {
@@ -222,7 +293,7 @@ function setNewCenter() {
 
   var min = 9999999;
   var max = -9999999;
-  var tol = 2500;
+  var tol = 3500;
   for(var i=0; i<numNeighborsX*numNeighborsY; i++) {
      if(patchSums.data[i] > max) {
         max = patchSums.data[i];
@@ -236,15 +307,33 @@ function setNewCenter() {
 	  var yDiff = (circleCenterY - circleCentersY.data[i]);
 	  var magDiff = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
 	  baseTone = xDiff+yDiff+baseTone;
-	  playTone(baseTone);
 	  circleCenterX = circleCentersX.data[i];
           circleCenterY = circleCentersY.data[i];
-	  setMooreNeighborHood();
+	  baseTone = Math.sqrt((circleCenterX*circleCenterX)+(circleCenterY*circleCenterY));
+	  playTone(baseTone);
+	  setMooreNeighborHood(baseTone);
 	}
      }
   }
 
 }
+
+function playMaxPatch() {
+
+  var max = -9999999;
+  var tol = 13500;
+  for(var i=0; i<numNeighborsX*numNeighborsY; i++) {
+     if(patchSums.data[i] > max) {
+        max = patchSums.data[i];
+        playIdx = i;
+     }
+  }
+  if(playIdx != -1 && max > tol)
+    playTone(patchTones.data[playIdx]);
+  playIdx = -1;
+
+}
+
 
 function handleUserMediaError(error){
   console.log('navigator.getUserMedia error: ', error);
