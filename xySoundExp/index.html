@@ -74,11 +74,11 @@ function init() {
 
   var actxCall = AudioContext;
   aContext = new actxCall();
-  soundShapes.push(new SoundShape(oContext, aContext, {'x':90, 'y':370}, 440,
-   80, 1000, 400));
-  soundShapes.push(new SoundShape(oContext, aContext, {'x':90, 'y':260}, 
-   440 * Math.pow(1.05946,7),
-   80, 1000, 400));
+  for (var i = 0; i < 12; i++) {
+
+    soundShapes.push(new SoundShape(oContext, aContext, {'x':90, 'y':(480
+     -i*(480/12))},440 * Math.pow(1.05946,i), 480/12, 1000, 400));
+  }
 }
 
 function startMedia() {
