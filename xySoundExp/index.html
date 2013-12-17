@@ -71,8 +71,8 @@ function init() {
      localVideo.clientHeight);
   });
   startMedia();
-
-  var actxCall = AudioContext;
+  
+  var actxCall = window.webkitAudioContext || window.AudioContext;
   aContext = new actxCall();
   for (var i = 0; i < 12; i++) {
 
