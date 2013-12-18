@@ -70,7 +70,7 @@ SoundShape.prototype.processDiff = function(diffData) {
   if (sum == 0) {
     return;
   }
-  if (!this.activated) {
+  if (!this.playing) {
     if (sum > this.tol) {
       this.activatedCount++;
       if(this.activatedCount > this.activatedCountTol) {
@@ -78,7 +78,6 @@ SoundShape.prototype.processDiff = function(diffData) {
       }
     }
   } else {
-   if(this.playing) {
     if (sum > this.tol) {
        if(this.activatedCount < this.activatedCountTol) {	
 	  this.activatedCount++;
@@ -88,9 +87,8 @@ SoundShape.prototype.processDiff = function(diffData) {
           this.playing = false;
           this.activatedCount = 0;
        }
-    }
-  }//if playing
- }//if activated
+  }//if tol after playing
+ }//if playing
 }
 
 SoundShape.prototype.playFromOutSide = function() {
