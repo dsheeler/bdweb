@@ -25,40 +25,12 @@ var oConext;
 var output;
 var localVideo;
 var soundShapes = [];
-
-
-var points = [];
-var xLoc,yLoc,mag,circleCenterX,circleCenterY,radius;
-xLoc = 0;
-yLoc = 0;
-var xMin,xMax,yMin,yMax;
-xMin = 0;
-xMax = 640;
-yMin = -1;
-yMax = -99999999;
-var patchSums;
 var oldDataCheck = -1;
-circleCentersX = {'data':[]};
-circleCentersY = {'data':[]};
-patchSums = {'data':[]};
-patchTones = {'data':[]};
-var changeMinMax = false;
-var frameCount = 3;
-xMin = 99999;
-xMax = -99999;
-yMin = 99999;
-yMax = -99999;
-var aSineWave;
+var frameCount = 0;
 
-
-//parameters
-var baseTone = 140;
-var playIdx = -1;
-numNeighborsX = 5;
-numNeighborsY = 1;
-radius = 20;
-circleCenterX = 30;
-circleCenterY = 30;
+//impossible to do anything other than 2d
+var numRows = 3;
+var numCols = 3;
 
 function init() {
   localVideo = document.querySelector('#localVideo');;
@@ -74,11 +46,16 @@ function init() {
   
   var actxCall = window.webkitAudioContext || window.AudioContext;
   aContext = new actxCall();
-  for (var i = 0; i < 12; i++) {
 
-    soundShapes.push(new SoundShape(oContext, aContext, {'x':90, 'y':(480
-     -i*(480/12))},440 * Math.pow(1.05946,i), 480/12, 1000, 400));
+  for(var i = 0; i<numCols; i++) {
+   for(var k=0; k<numRows; k++) {
+      console.log("ceneter for ss:",Math.round(90+(k*(640/3))),Math.round((420-i*(480/3))));
+      idx = k + (i * numRows);
+      soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(k*(640/3))), 'y':Math.round((420
+     -i*(480/3)))},440 * Math.pow(1.05946,idx), 480/9, 1000, 400));
+   }
   }
+  console.log("Made soundShapes:",soundShapes.length);
 }
 
 function startMedia() {
@@ -95,64 +72,6 @@ function handleUserMedia(stream) {
   attachMediaStream(localVideo, stream);
   localStream = stream;
 }
-
-
-function playFourChord(freq) {
-  var ctx = aContext;
-  var o = ctx.createOscillator();
-  var o1 = ctx.createOscillator();
-  var o2 = ctx.createOscillator();
-  var o3 = ctx.createOscillator();
-  var g = ctx.createGain();
-
-  o.frequency.value = freq;
-  o.type = "sawtooth";
-
-  o1.frequency.value = freq+17.5;
-  o1.type = "sawtooth";
-
-  o2.frequency.value = freq+23.5;
-  o2.type = "sawtooth";
-
-  o3.frequency.value = freq-40.5;
-  o3.type = "sawtooth";
-
-
-
-  o.connect(g);
-  o1.connect(g);
-  o2.connect(g);
-  o3.connect(g);
-
-  g.connect(ctx.destination);
-  g.gain.setValueAtTime(0.0,ctx.currentTime);
-
-  o.start(ctx.currentTime);
-  o1.start(ctx.currentTime);
-  o2.start(ctx.currentTime);
-  o3.start(ctx.currentTime);
-
-  g.gain.linearRampToValueAtTime(0.25, ctx.currentTime+0.5);
-  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.75);
-  g.gain.linearRampToValueAtTime(0.75, ctx.currentTime+1.00);
-}
-
-function playTone(freq) {
-  var ctx = aContext;
-  var o = ctx.createOscillator();
-  var g = ctx.createGain();
-  o.frequency.value = freq;
-  o.type = "triangle";
-
-  o.connect(g);
-  g.connect(ctx.destination);
-  g.gain.setValueAtTime(0.0,ctx.currentTime);
-  o.start(ctx.currentTime);
-  g.gain.linearRampToValueAtTime(0.25, ctx.currentTime+1.0);
-  g.gain.linearRampToValueAtTime(1.0, ctx.currentTime+2.0);
-  g.gain.linearRampToValueAtTime(2.0, ctx.currentTime+3.00);
-}
-
 
 function draw(v,c,w,h) {
   try {
@@ -180,110 +99,72 @@ function draw(v,c,w,h) {
 	      var diff = imgData.data[idx] - oldData.data[idx];
 	      oldData.data[idx] = oldData.data[idx+1] = oldData.data[idx+2] = imgData.data[idx];
 	      imgData.data[idx] = imgData.data[idx+1] = imgData.data[idx+2] = diff;
-        //        findMaxChangeInNeighborHood(j,i,diff);
 	    }
     }
+    var yCenterMin1 = 999999;
+    var yCenterMin2 = 999999;
+    var yCenterMin3 = 999999;
+    var playCol1Idx = -1;
+    var playCol2Idx = -1;
+    var playCol3Idx = -1;
+    for(var i = 0; i<numCols; i++) {
+     for(var j = 0; j<numRows; j++) {
+        var idx = j + (i * 3);
+        soundShapes[idx].drawCircle();
+        soundShapes[idx].processDiff(imgData);
+        //first column
+	if(j == 0) {
+          if(soundShapes[idx].activated) {
+            if(soundShapes[idx].center.y < yCenterMin1) {
+		yCenterMin1 = soundShapes[idx].center.y;
+		playCol1Idx = idx;
+	    }
+          }
+        }
+	//second column
+	if(j == 1) {
+          if(soundShapes[idx].activated) {
+            if(soundShapes[idx].center.y < yCenterMin2) {
+                yCenterMin2 = soundShapes[idx].center.y;
+                playCol2Idx = idx;
+            }
+          }
+        }
+	//third
+	if(j == 2) {
+          if(soundShapes[idx].activated) {
+            if(soundShapes[idx].center.y < yCenterMin3) {
+                yCenterMin3 = soundShapes[idx].center.y;
+                playCol3Idx = idx;
+            }
+          }
+        }      
+      } //end for j
+    } //end for i
+    //play highest Ys
+    //if(frameCount % 10 == 0 ) {
+      if(playCol1Idx != -1)
+        soundShapes[playCol1Idx].playFromOutSide();
+      if(playCol2Idx != -1)
+        soundShapes[playCol2Idx].playFromOutSide();
+      if(playCol3Idx != -1)
+        soundShapes[playCol3Idx].playFromOutSide();
 
-    for (var i = 0; i < soundShapes.length; i++) {
-      soundShapes[i].drawCircle();
-      soundShapes[i].processDiff(imgData);
-    }
-    if(playIdx == -1)
-	    playMaxPatch();
-
-    //drawLinePath();
+    //}
     oldDataCheck = 1;
-    resetSums();
   } catch (e) {
     if (e.name != "NS_ERROR_NOT_AVAILABLE") {
       throw e;
     }
   }
-  frameCount++;
   setTimeout(draw,20,v,oContext,output.width,output.height);
+  frameCount++;
+  if(frameCount > 1000) 
+    frameCount = 0;
 }
-
-function resetSums() {
-  for(var i=0; i<numNeighborsX*numNeighborsY; i++) {
-     patchSums.data[i] = 0;
-  }
-}
-
-
-function findMaxChangeInNeighborHood(x,y,diff) {
-   for(var i=0; i<numNeighborsX*numNeighborsY; i++) {
-        if( (x >= (circleCentersX.data[i] - radius) && x < (circleCentersX.data[i] + radius)) &&
-	    (y >= (circleCentersY.data[i] - radius) && y < (circleCentersY.data[i] + radius))) {
-		patchSums.data[i] = patchSums.data[i] + Math.abs(diff);
-	}
-    }
-}
-
-function setNewCenter() {
-
-  var min = 9999999;
-  var max = -9999999;
-  var tol = 3500;
-  for(var i=0; i<numNeighborsX*numNeighborsY; i++) {
-     if(patchSums.data[i] > max) {
-        max = patchSums.data[i];
-     }
-  }
-  for(var i=0; i<numNeighborsX*numNeighborsY; i++) {
-     if(max == patchSums.data[i]) {
-	if(max > tol) {
-
-	  var xDiff = (circleCenterX - circleCentersX.data[i]);
-	  var yDiff = (circleCenterY - circleCentersY.data[i]);
-	  var magDiff = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
-	  baseTone = xDiff+yDiff+baseTone;
-	  circleCenterX = circleCentersX.data[i];
-          circleCenterY = circleCentersY.data[i];
-	  baseTone = Math.sqrt((circleCenterX*circleCenterX)+(circleCenterY*circleCenterY));
-	  playTone(baseTone);
-	  setMooreNeighborHood(baseTone);
-	}
-     }
-  }
-
-}
-
-function playMaxPatch() {
-
-  var max = -9999999;
-  var tol = 13500;
-  for(var i=0; i<numNeighborsX*numNeighborsY; i++) {
-     if(patchSums.data[i] > max) {
-        max = patchSums.data[i];
-        playIdx = i;
-     }
-  }
-  if(playIdx != -1 && max > tol) {
-    aSineWave.setFrequency(patchTones.data[playIdx]);
-    aSineWave.play();
-    //playTone(patchTones.data[playIdx]);
-  }
-  playIdx = -1;
-
-}
-
 
 function handleUserMediaError(error){
   console.log('navigator.getUserMedia error: ', error);
-}
-
-function drawLinePath() {
-  if(points.length > 1) {
-  var ctx = oContext;
-  ctx.strokeStyle = 'rgba(230,87,0,0.8)';
-  ctx.beginPath();
-  for(var i=0; i<points.length; i++) {
-    if(i == 0)
-      ctx.moveTo(points[i].x,points[i].y);
-    ctx.lineTo(points[i].x,points[i].y);
-  }
-  ctx.stroke();
- }
 }
 
 </script>

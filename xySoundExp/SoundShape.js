@@ -12,6 +12,9 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.tol = tol;
    this.tol2 = tol2;
    this.activated = false;
+   this.activatedCount = 0;
+   this.playing = false;
+   this.activatedCountTol = 10;
 }
 
 
@@ -32,20 +35,31 @@ SoundShape.prototype.setTol = function(tl) {
 }
 
 SoundShape.prototype.drawCircle = function() {
-  if (!this.activated) {
-    this.drawContext.fillStyle = 'rgba(30,100,80,0.8)';
-  } else {
-    this.drawContext.fillStyle = 'rgba(30, 240, 180, 0.8)';
-  }
+  this.setFillStyle();
   this.drawContext.beginPath();
   this.drawContext.arc(this.center.x,this.center.y,this.radius,0,2.0*Math.PI);
   this.drawContext.fill();
 }
 
+SoundShape.prototype.setFillStyle = function() {
+
+ if (!this.playing) {
+    this.drawContext.fillStyle = 'rgba(30,100,80,0.8)';
+  } else {
+    this.drawContext.fillStyle = 'rgba(30, 240, 180, 0.8)';
+  }
+
+}
+
 SoundShape.prototype.processDiff = function(diffData) {
   var sum = 0;
-  for(var i=0; i<480; i++) {
-    for(var j=0; j<640; j++) {
+  
+  var yStart = Math.round(this.center.y - this.radius) 
+  var yEnd  = Math.round(this.center.y + this.radius);
+  var xStart = Math.round(this.center.x - this.radius);
+  var xEnd  = Math.round(this.center.x + this.radius);
+  for(var i=yStart; i<yEnd; i++) {
+    for(var j=xStart; j<xEnd; j++) {
       var idx = (j + (i * output.width))*4;
       if (this.isIn(j,i)) {
         sum += diffData.data[idx]*diffData.data[idx];
@@ -56,24 +70,37 @@ SoundShape.prototype.processDiff = function(diffData) {
   if (sum == 0) {
     return;
   }
-  console.log('sum is: ', sum);
   if (!this.activated) {
-  
     if (sum > this.tol) {
-      console.log('active');    
-      this.activated = true;
-      if(!this.aSineWave.playing) {
-    	  this.aSineWave.setFrequency(this.tone);
-    	  this.aSineWave.play();
+      this.activatedCount++;
+      if(this.activatedCount > this.activatedCountTol) {
+           this.activated = true;
       }
     }
   } else {
-    if (sum < this.tol2) {
-      console.log('deactivated');
-      this.activated = false;
-      this.aSineWave.pause();
+   if(this.playing) {
+    if (sum > this.tol) {
+       if(this.activatedCount < this.activatedCountTol) {	
+	  this.activatedCount++;
+       } else {
+          this.activated = false;
+          this.aSineWave.pause();
+          this.playing = false;
+          this.activatedCount = 0;
+       }
     }
-  }
+  }//if playing
+ }//if activated
+}
+
+SoundShape.prototype.playFromOutSide = function() {
+
+ if(this.activatedCount > this.activatedCountTol && this.activated  && !this.playing) {
+  this.aSineWave.setFrequency(this.tone);
+  this.aSineWave.play();
+  this.playing = true;
+  this.activatedCount = 0;
+ }
 }
 
 SoundShape.prototype.isIn = function(x,y) {
