@@ -67,38 +67,35 @@ SoundShape.prototype.processDiff = function(diffData) {
     }
   }
   sum = Math.sqrt(sum);
-  if (sum == 0) {
+  if (sum == 0 || sum > 2000) {
     return;
   }
-  if (!this.playing) {
+  //if (!this.playing) {
     if (sum > this.tol) {
       this.activatedCount++;
+      console.log("WINNING SUM:",this.center.x,this.center.y,sum,this.activated,this.playing,this.activatedCount);
       if(this.activatedCount > this.activatedCountTol) {
-           this.activated = true;
+     	  this.activated = true;
+	  this.activatedCount = 0;
       }
     }
-  } else {
-    if (sum > this.tol) {
-       if(this.activatedCount < this.activatedCountTol) {	
-	  this.activatedCount++;
-       } else {
-          this.activated = false;
-          this.aSineWave.pause();
-          this.playing = false;
-          this.activatedCount = 0;
-       }
-  }//if tol after playing
- }//if playing
+  //} 
 }
 
 SoundShape.prototype.playFromOutSide = function() {
 
- if(this.activatedCount > this.activatedCountTol && this.activated  && !this.playing) {
+ if(!this.playing && this.activated) {
   this.aSineWave.setFrequency(this.tone);
   this.aSineWave.play();
   this.playing = true;
-  this.activatedCount = 0;
+  this.activated = false;
  }
+}
+
+SoundShape.prototype.pauseFromOutSide = function () {
+  this.aSineWave.pause();
+  this.playing = false;
+  this.activated = false;
 }
 
 SoundShape.prototype.isIn = function(x,y) {
