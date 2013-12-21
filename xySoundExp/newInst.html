@@ -15,6 +15,7 @@
   <script>
 
 window.onload = init;
+
 var oldData;
 var fuckData;
 var newData;
@@ -26,7 +27,6 @@ var output;
 var localVideo;
 var soundShapes = [];
 var oldDataCheck = -1;
-var frameCount = 0;
 var baseTone = 240;
 //impossible to do anything other than 2d
 var numRows = 4;
@@ -37,6 +37,8 @@ var currentCol2Idx = -1;
 var deferCol1Idx = -1;
 var deferCol2Idx = -1;
 
+var baseTol1 = 750; 
+var baseTol2 = 350;
 function init() {
   localVideo = document.querySelector('#localVideo');;
   output = document.querySelector('#output');
@@ -57,25 +59,25 @@ function init() {
       idx = k + (i * numRows);
       if(i == 0) {
         if(k == 0)
-      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone, 50.0, 1000, 400));
+      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone, 50.0, baseTol1, baseTol2));
         if(k == 1)
-      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(240), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,4), 50.0, 1000, 400));
+      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,4), 50.0, baseTol1, baseTol2));
         if(k == 2)
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(240), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), 50.0, 1000, 400));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
         if(k == 3)
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,12), 50.0, 1000, 400));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,12), 50.0, baseTol1, baseTol2));
       }
       if(i == 1) {
 	if(k == 0)
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), 50.0, 1000, 400));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
         if(k == 1)
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(360), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,4))*Math.pow(1.05946,7), 50.0, 1000, 400));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,4))*Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
         if(k == 2) {
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(360), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,7))*Math.pow(1.05946,7), 50.0, 1000, 400));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,7))*Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
 	   console.log("I1K2: Drawled:",Math.round(90+(i*460)),Math.round((420-k*(480/4))));
         }
         if(k == 3) {
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,12))*Math.pow(1.05946,7), 50.0, 1000, 400));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,12))*Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
 	   console.log("I1K3: Drawled:",Math.round(90+(i*460)),Math.round((420-k*(480/4))));
         }
 
@@ -128,22 +130,13 @@ function draw(v,c,w,h) {
 	      imgData.data[idx] = imgData.data[idx+1] = imgData.data[idx+2] = diff;
 	    }
     }
-    var playColIdx = -1;
     for(var i = 0; i<numCols; i++) {
      for(var j = 0; j<numRows; j++) {
         var idx = j + (i * numRows);
         soundShapes[idx].drawCircle();
         soundShapes[idx].processDiff(imgData);
-        //first column
-        if(soundShapes[idx].activated && !soundShapes[idx].playing) {
-	  playColIdx = idx;
-        } else if(soundShapes[idx].activated && soundShapes[idx].playing) {
-	   soundShapes[idx].pauseFromOutSide();
-	}
       } //end for j
     } //end for i
-    if(playColIdx != -1)
-       soundShapes[playColIdx].playFromOutSide();
     oldDataCheck = 1;
   } catch (e) {
     if (e.name != "NS_ERROR_NOT_AVAILABLE") {
@@ -151,9 +144,6 @@ function draw(v,c,w,h) {
     }
   }
   setTimeout(draw,20,v,oContext,output.width,output.height);
-  frameCount++;
-  if(frameCount > 1000) 
-    frameCount = 0;
 }
 
 function handleUserMediaError(error){
