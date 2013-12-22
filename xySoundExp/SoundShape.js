@@ -14,7 +14,7 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.activated = false;
    this.activatedCount = 0;
    this.playing = false;
-   this.activatedCountTol = 5;
+   this.activatedCountTol = 4;
    this.previousSum = 0.0;
    this.activatedSum = 0.0;
 }
@@ -72,20 +72,20 @@ SoundShape.prototype.processDiff = function(diffData) {
   
   if (sum == 0) {
     return;
-  }
+  }	
+
    if(this.activatedCount == this.activatedCountTol) {
-    if(this.center.x == 90 && this.center.y == 420)
-    	console.log("acSum and avg:",this.activatedSum,this.activatedSum/this.activatedCountTol,this.tol,this.tol2);
+
     if(this.activatedSum/this.activatedCountTol > this.tol) {
 	if(!this.playing) {
 	  this.aSineWave.setFrequency(this.tone);
   	  this.aSineWave.play();
   	  this.playing = true;
-	} else {
+	} /*else {
 	  this.aSineWave.pause();
 	  this.playing = false;
-	} 
-     } else if(this.activatedSum/this.activatedCountTol > this.tol2) {
+	}*/ 
+     } else if(this.activatedSum/this.activatedCountTol < this.tol2) {
         if(this.playing) {
            this.aSineWave.pause();
            this.playing = false;
