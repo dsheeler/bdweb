@@ -37,8 +37,9 @@ var currentCol2Idx = -1;
 var deferCol1Idx = -1;
 var deferCol2Idx = -1;
 
-var baseTol1 = 750; 
-var baseTol2 = 350;
+var rad1 = 25.0;
+var baseTol1 = 666; 
+var baseTol2 = 100;
 function init() {
   localVideo = document.querySelector('#localVideo');;
   output = document.querySelector('#output');
@@ -59,25 +60,25 @@ function init() {
       idx = k + (i * numRows);
       if(i == 0) {
         if(k == 0)
-      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone, 50.0, baseTol1, baseTol2));
+      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone, rad1, baseTol1, baseTol2));
         if(k == 1)
-      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,4), 50.0, baseTol1, baseTol2));
+      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,4), rad1, baseTol1, baseTol2));
         if(k == 2)
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
         if(k == 3)
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,12), 50.0, baseTol1, baseTol2));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,12), rad1, baseTol1, baseTol2));
       }
       if(i == 1) {
 	if(k == 0)
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
         if(k == 1)
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,4))*Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,4))*Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
         if(k == 2) {
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,7))*Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,7))*Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
 	   console.log("I1K2: Drawled:",Math.round(90+(i*460)),Math.round((420-k*(480/4))));
         }
         if(k == 3) {
-           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,12))*Math.pow(1.05946,7), 50.0, baseTol1, baseTol2));
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,12))*Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
 	   console.log("I1K3: Drawled:",Math.round(90+(i*460)),Math.round((420-k*(480/4))));
         }
 
