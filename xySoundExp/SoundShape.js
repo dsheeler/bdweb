@@ -17,6 +17,8 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.activatedCountTol = 4;
    this.previousSum = 0.0;
    this.activatedSum = 0.0;
+   this.gettingBaseLine = true;
+   this.basis = 0.0;
 }
 
 
@@ -68,36 +70,43 @@ SoundShape.prototype.processDiff = function(diffData) {
       }
     }
   }
-  this.activatedSum = this.activatedSum + Math.sqrt(sum);
-  
-  if (sum == 0) {
-    return;
-  }	
-
-   if(this.activatedCount == this.activatedCountTol) {
-
-    if(this.activatedSum/this.activatedCountTol > this.tol) {
-	if(!this.playing) {
-	  this.aSineWave.setFrequency(this.tone);
-  	  this.aSineWave.play();
-  	  this.playing = true;
-	} /*else {
-	  this.aSineWave.pause();
-	  this.playing = false;
-	}*/ 
-     } else if(this.activatedSum/this.activatedCountTol < this.tol2) {
-        if(this.playing) {
-           this.aSineWave.pause();
-           this.playing = false;
-        }
-    }
-     this.activatedSum = 0.0;
-     this.activatedCount = 0;
+  if(sum == 0 || isNaN(sum)) {
+     return;
+  } else {
+     this.activatedSum = this.activatedSum + Math.sqrt(sum);
+  }
+   if(this.gettingBaseLine) {
+     if(this.activatedCount == 100) {
+	this.basis = this.activatedSum/this.activatedCount;
+        this.activatedCount = 0;
+        this.gettingBaseLine = false;
+        this.tol = this.basis + 250;
+        this.tol2 = this.basis + 25;
+        console.log("Basis, Tol, Tol2:",this.activatedSum,this.basis,this.tol,this.tol2);
+     } else {
+        this.activatedCount++;
+     }
    } else {
-     this.activatedCount++;
+      if(this.activatedCount == this.activatedCountTol) {
+    	if(this.activatedSum/this.activatedCountTol > this.tol) {
+	  if(!this.playing) {
+	    
+	    this.aSineWave.setFrequency(this.tone);
+  	    this.aSineWave.play();
+  	    this.playing = true;
+	  } 
+         } else if(this.activatedSum/this.activatedCountTol < this.tol2) {
+          if(this.playing) {
+            this.aSineWave.pause();
+            this.playing = false;
+          }
+         }
+      this.activatedSum = 0.0;
+      this.activatedCount = 0;
+      } else {
+      this.activatedCount++;
+      }
    }
-
-   
 }
 
 SoundShape.prototype.playFromOutSide = function() {
@@ -126,6 +135,11 @@ var dist = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
   } else {
     return false;
   }
+}
+
+SoundShape.prototype.getBasis = function () {
+
+
 }
 
 
