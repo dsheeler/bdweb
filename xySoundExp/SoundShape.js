@@ -19,6 +19,8 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.activatedSum = 0.0;
    this.gettingBaseLine = true;
    this.basis = 0.0;
+   this.min = 99999;
+   this.max = -99999;
 }
 
 
@@ -109,20 +111,62 @@ SoundShape.prototype.processDiff = function(diffData) {
    }
 }
 
-SoundShape.prototype.playFromOutSide = function() {
+SoundShape.prototype.GetEntropy = function(imgData) {
 
- if(!this.playing && this.activated) {
-  this.aSineWave.setFrequency(this.tone);
-  this.aSineWave.play();
-  this.playing = true;
-  this.activated = false;
- }
-}
+  var skinTonePixel = 0;
+  var notSkinTonePixel = 0;
+  var yStart = Math.round(this.center.y - this.radius)
+  var yEnd  = Math.round(this.center.y + this.radius);
+  var xStart = Math.round(this.center.x - this.radius);
+  var xEnd  = Math.round(this.center.x + this.radius);
 
-SoundShape.prototype.pauseFromOutSide = function () {
-  this.aSineWave.pause();
-  this.playing = false;
-  this.activated = false;
+  var GreyScale = new Array(); 
+  for(var i=0; i<256; i++) {
+      GreyScale[i] = 0;
+  }
+
+  for(var i=yStart; i<yEnd; i++) {
+    for(var j=xStart; j<xEnd; j++) {
+      var idx = (j + (i * output.width))*4;
+      if (this.isIn(j,i)) {
+        var greyScale = 0.299*imgData.data[idx] + 0.587*imgData.data[idx+1] + 0.114*imgData.data[idx+2];
+	GreyScale[Math.round(greyScale)] = GreyScale[Math.round(greyScale)] + 1;
+      }
+    }
+  }
+  //calculate entropy
+  var psum = 0.0;
+  for(var index in GreyScale) {
+    if(GreyScale[index] != 0) {
+      psum = psum + (GreyScale[index]/256) * (Math.log(GreyScale[index]/256)/Math.log(256));
+    }
+  }
+  var entropy = -1.0 * psum;
+  if(this.gettingBaseLine && !isNaN(entropy)) {
+
+	this.activatedSum = this.activatedSum + entropy;
+	this.activatedCount++;
+
+        if(entropy < this.min)
+	  this.min = entropy;
+        if(entropy > this.max)
+          this.max = entropy;
+
+	if(this.activatedCount == 150) {
+	    this.gettingBaseLine = false;
+	    this.tol = this.activatedSum/this.activatedCount;
+	    console.log("Base Entropy is:",this.tol,this.min,this.max);
+	}
+  } else {
+   //console.log("Entropy:",entropy,this.tol+0.5);
+   if(entropy > this.tol+0.5) { // && entropy < this.tol + (this.max*0.5)) {
+    if(!this.playing)
+     this.PlayTone();
+    } else {
+     if(this.playing)
+      this.PauseTone();
+    }
+  }
 }
 
 SoundShape.prototype.isIn = function(x,y) {
@@ -137,9 +181,13 @@ var dist = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
   }
 }
 
-SoundShape.prototype.getBasis = function () {
-
-
+SoundShape.prototype.PlayTone = function () {
+   this.aSineWave.setFrequency(this.tone);
+   this.aSineWave.play();
+   this.playing = true;
 }
 
-
+SoundShape.prototype.PauseTone = function () {
+   this.aSineWave.pause();
+   this.playing = false;
+}
