@@ -23,6 +23,7 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.min = 99999;
    this.max = -99999;
    this.Entropies = {'data':[]};
+   this.numPixels = 0;
 }
 
 
@@ -126,36 +127,31 @@ SoundShape.prototype.GetEntropy = function(imgData) {
   for(var i=0; i<256; i++) {
       GreyScale[i] = 0;
   }
-
+  this.numPixels = 0;
   for(var i=yStart; i<yEnd; i++) {
     for(var j=xStart; j<xEnd; j++) {
       var idx = (j + (i * output.width))*4;
       if (this.isIn(j,i)) {
         var greyScale = 0.299*imgData.data[idx] + 0.587*imgData.data[idx+1] + 0.114*imgData.data[idx+2];
 	GreyScale[Math.round(greyScale)] = GreyScale[Math.round(greyScale)] + 1;
+	this.numPixels++;
       }
     }
   }
   //calculate entropy
   var psum = 0.0;
-  var numStates = 0;
-  for(var index in GreyScale) {
-    if(GreyScale[index] != 0) {
-      numStates++;
-    }
-  }
   for(var index in GreyScale) {
      if(GreyScale[index] != 0) {
-	psum = psum +  ((GreyScale[index]/numStates) * Math.log(GreyScale[index]/numStates)/Math.log(2));
+	psum = psum +  ((GreyScale[index]/this.numPixels) * Math.log(GreyScale[index]/this.numPixels)/Math.log(2));
      }
   }
+
   var entropy = -1.0 * psum;
   if(this.gettingBaseLine && !isNaN(entropy)) {
 
         this.Entropies.data[this.activatedCount] = entropy;
 	this.activatedSum = this.activatedSum + entropy;
 	this.activatedCount++;
-
         if(entropy < this.min)
 	  this.min = entropy;
         if(entropy > this.max)
@@ -168,11 +164,11 @@ SoundShape.prototype.GetEntropy = function(imgData) {
 		sigmaSum = sigmaSum + (Math.pow((this.Entropies.data[i]-this.tol),2));	
 	    }
 	    this.sigma = Math.sqrt(sigmaSum/this.activatedCount);
-	    console.log("Base Entropy is:",this.tol,this.min,this.max,this.sigma,sigmaSum);
+	    console.log("Base Entropy is:",this.tol,this.min,this.max,this.sigma,sigmaSum,this.numPixels);
 	}
   } else {
    //console.log("Entropy:",entropy,this.tol+0.5);
-   if(entropy > this.tol+(3*this.sigma)) { // && entropy < this.tol + (this.max*0.5)) {
+   if(entropy > this.max+0.5) { // && entropy < this.tol + (this.max*0.5)) {
     if(!this.playing)
      this.PlayTone();
     } else {
