@@ -19,8 +19,10 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.activatedSum = 0.0;
    this.gettingBaseLine = true;
    this.basis = 0.0;
+   this.sigma = 0.0;
    this.min = 99999;
    this.max = -99999;
+   this.Entropies = {'data':[]};
 }
 
 
@@ -136,14 +138,21 @@ SoundShape.prototype.GetEntropy = function(imgData) {
   }
   //calculate entropy
   var psum = 0.0;
+  var numStates = 0;
   for(var index in GreyScale) {
     if(GreyScale[index] != 0) {
-      psum = psum + (GreyScale[index]/256) * (Math.log(GreyScale[index]/256)/Math.log(256));
+      numStates++;
     }
+  }
+  for(var index in GreyScale) {
+     if(GreyScale[index] != 0) {
+	psum = psum +  ((GreyScale[index]/numStates) * Math.log(GreyScale[index]/numStates)/Math.log(2));
+     }
   }
   var entropy = -1.0 * psum;
   if(this.gettingBaseLine && !isNaN(entropy)) {
 
+        this.Entropies.data[this.activatedCount] = entropy;
 	this.activatedSum = this.activatedSum + entropy;
 	this.activatedCount++;
 
@@ -151,15 +160,19 @@ SoundShape.prototype.GetEntropy = function(imgData) {
 	  this.min = entropy;
         if(entropy > this.max)
           this.max = entropy;
-
 	if(this.activatedCount == 150) {
 	    this.gettingBaseLine = false;
 	    this.tol = this.activatedSum/this.activatedCount;
-	    console.log("Base Entropy is:",this.tol,this.min,this.max);
+	    var sigmaSum = 0;
+	    for(var i=0; i<this.activatedCount; i++) {
+		sigmaSum = sigmaSum + (Math.pow((this.Entropies.data[i]-this.tol),2));	
+	    }
+	    this.sigma = Math.sqrt(sigmaSum/this.activatedCount);
+	    console.log("Base Entropy is:",this.tol,this.min,this.max,this.sigma,sigmaSum);
 	}
   } else {
    //console.log("Entropy:",entropy,this.tol+0.5);
-   if(entropy > this.tol+0.5) { // && entropy < this.tol + (this.max*0.5)) {
+   if(entropy > this.tol+(3*this.sigma)) { // && entropy < this.tol + (this.max*0.5)) {
     if(!this.playing)
      this.PlayTone();
     } else {
