@@ -95,7 +95,7 @@ function draw(v,c,w,h) {
     var imgData = c.getImageData(0, 0, output.width,output.height);
     for(var i=0; i<soundShapes.length; i++) {
        soundShapes[i].drawCircle();
-       soundShapes[i].GetEntropy(imgData);
+       soundShapes[i].GetEntropyChange(imgData);
     }
   } catch (e) {
     if (e.name != "NS_ERROR_NOT_AVAILABLE") {
