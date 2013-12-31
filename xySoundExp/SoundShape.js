@@ -25,6 +25,10 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.Entropies = {'data':[]};
    this.numPixels = 0;
    this.prevEntropy = 0.0;
+   this.frameCount = 0;
+   this.onFrame = 0;
+   this.offFrame = 0;
+
 }
 
 
@@ -33,7 +37,7 @@ SoundShape.prototype.setCenter = function(p) {
 }
 
 SoundShape.prototype.setTone = function(t) {
-  this.tone = t;
+  this.aSineWave.setFrequency(this.tone);
 }
 
 SoundShape.prototype.setRadius = function(r) {
@@ -49,6 +53,17 @@ SoundShape.prototype.drawCircle = function() {
   this.drawContext.beginPath();
   this.drawContext.arc(this.center.x,this.center.y,this.radius,0,2.0*Math.PI);
   this.drawContext.fill();
+  if ((this.frameCount - this.onFrame) < 30) {
+    var percentFull = (30 - (this.frameCount - this.onFrame))/30.0;
+    var percentEmpty = 1 - percentFull;
+    this.drawContext.fillStyle = 'rgba(255,255,255,' + 0.5 + ')';
+    this.drawContext.beginPath();
+    this.drawContext.arc(this.center.x,this.center.y,this.radius*percentFull,0,2.0*Math.PI);
+    this.drawContext.fill();
+    this.aSineWave.setFrequency(this.tone *Math.pow(2.0, (5*percentEmpty*(1/12.0))));
+  } else {
+    this.PauseTone();
+  }
 }
 
 SoundShape.prototype.setFillStyle = function() {
@@ -62,6 +77,7 @@ SoundShape.prototype.setFillStyle = function() {
 }
 
 SoundShape.prototype.processDiff = function(diffData) {
+  this.frameCount++;
   var sum = 0;
   
   var yStart = Math.round(this.center.y - this.radius) 
@@ -97,14 +113,14 @@ SoundShape.prototype.processDiff = function(diffData) {
     	if(this.activatedSum/this.activatedCountTol > this.tol) {
 	  if(!this.playing) {
 	    
-	    this.aSineWave.setFrequency(this.tone);
+	    this.setTone(this.tone);
   	    this.aSineWave.play();
   	    this.playing = true;
+        this.onFrame = this.frameCount;
 	  } 
          } else if(this.activatedSum/this.activatedCountTol < this.tol2) {
           if(this.playing) {
-            this.aSineWave.pause();
-            this.playing = false;
+                        this.offFrame = this.frameCount;
           }
          }
       this.activatedSum = 0.0;
@@ -172,11 +188,14 @@ SoundShape.prototype.GetEntropy = function(imgData) {
    if(entropy > this.max+0.5) { // && entropy < this.tol + (this.max*0.5)) {
     if(!this.playing)
      this.PlayTone();
+     this.onFrame = this.frameCount;
     } else {
      if(this.playing)
-      this.PauseTone();
+      //this.PauseTone();
+      this.offFrame = this.frameCount;
     }
   }
+<<<<<<< HEAD
   this.prevEntropy = entropy;
 }
 
@@ -234,6 +253,7 @@ SoundShape.prototype.GetEntropyChange = function(imgData) {
 
 SoundShape.prototype.PlayOrPause = function() {
     this.playing ? this.PauseTone() : this.PlayTone();
+    this.frameCount++;
 }
 
 SoundShape.prototype.isIn = function(x,y) {
