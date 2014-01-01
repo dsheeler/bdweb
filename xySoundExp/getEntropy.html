@@ -47,23 +47,27 @@ function init() {
   var actxCall = window.webkitAudioContext || window.AudioContext;
   aContext = new actxCall();
   var cRad = 180;
-  var numShapes = 3;
+  var numShapes = 8;
   var unit = 360/numShapes;
-  var origX = 320;
-  var origY = 240;
-  var baseTone = 240;
+  var origX = 75;
+  var origY = 75;
+  var baseTone = 440;
   var prevTone = 0;
-  for(var i=0; i<numShapes; i++) {
+//circle
+/*for(var i=0; i<numShapes; i++) {
        var deg = (i*unit) * Math.PI/180; 
        var x = origX + cRad * Math.sin(deg);
        var y = origY + cRad * Math.cos(deg);
-       if(i==0) {
-         prevTone = baseTone * Math.pow(1.05946,7);
-       } else {
- 	 prevTone = prevTone * Math.pow(1.05946,7);
-       }
-       soundShapes.push(new SoundShape(oContext, aContext, {'x':x, 'y':y}, prevTone, 50, 100, 10));
+       soundShapes.push(new SoundShape(oContext, aContext, {'x':x, 'y':y}, baseTone, 25, 100, i));
        console.log("XY",x,y,prevTone);
+  }*/
+//top zig zag
+var sRad = 35;
+for(var i=0; i<numShapes; i++) {
+    var x = origX + (i*(sRad*2));
+    var y = (i % 2 == 0) ? origY : origY + sRad;
+    soundShapes.push(new SoundShape(oContext, aContext, {'x':x, 'y':y}, baseTone, sRad, 100, i));
+    console.log("SoundShape:",i,x,y,sRad,baseTone);
   }
   console.log("Made soundShapes:",soundShapes.length);
 }

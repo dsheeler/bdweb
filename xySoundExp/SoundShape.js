@@ -4,12 +4,11 @@
 //sound shape takes a canvas drawling context and an audio context and x y point
 SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.center = center;
-   this.tone = tone;
    this.radius = radius;
    this.aSineWave = new SineWave(aContext);
    this.drawContext = cContext;
    this.audioContext = aContext;
-   this.tol = 5.0;
+   this.tol = tol;
    this.tol2 = tol2;
    this.activated = false;
    this.activatedCount = 0;
@@ -28,6 +27,11 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.frameCount = 0;
    this.onFrame = 0;
    this.offFrame = 0;
+   this.Ionian = [];
+   this.Aeolian = [];
+
+   this.makeScales();
+   this.tone = tone * Math.pow(1.05946,this.Aeolian[tol2]);
 
 }
 
@@ -60,7 +64,7 @@ SoundShape.prototype.drawCircle = function() {
     this.drawContext.beginPath();
     this.drawContext.arc(this.center.x,this.center.y,this.radius*percentFull,0,2.0*Math.PI);
     this.drawContext.fill();
-    this.aSineWave.setFrequency(this.tone *Math.pow(2.0, (5*percentEmpty*(1/12.0))));
+    //this.aSineWave.setFrequency(this.tone *Math.pow(2.0, (5*percentEmpty*(1/12.0))));
   } else {
     this.PauseTone();
   }
@@ -184,7 +188,7 @@ SoundShape.prototype.GetEntropy = function(imgData) {
 	    console.log("Base Entropy is:",this.tol,this.min,this.max,this.sigma,sigmaSum,this.numPixels);
 	}
   } else {
-   console.log("Entropy:",this.center.x,this.center.y,entropy,this.prevEntropy);
+   console.log("Entropy:",this.center.x,this.center.y,entropy,this.prevEntropy,this.max);
    if(entropy > this.max+0.5) { // && entropy < this.tol + (this.max*0.5)) {
     if(!this.playing)
      this.PlayTone();
@@ -195,8 +199,8 @@ SoundShape.prototype.GetEntropy = function(imgData) {
       this.offFrame = this.frameCount;
     }
   }
-<<<<<<< HEAD
   this.prevEntropy = entropy;
+  this.frameCount++;
 }
 
 SoundShape.prototype.GetEntropyChange = function(imgData) {
@@ -229,25 +233,54 @@ SoundShape.prototype.GetEntropyChange = function(imgData) {
   }
 
   var entropy = -1.0 * psum;
-  if(this.activatedCount == this.activatedCountTol) {
-    var esum = 0.0;
-    var eavg = 0.0;
-    for(var i=0; i<this.Entropies.data.length; i++) {
-	esum = esum + this.Entropies.data[i];
-    }
-    eavg = esum/this.Entropies.data.length;
-    if(eavg > this.tol) {
-	this.PlayTone();
-    } else {
-        this.PauseTone();
-    }
-    this.prevEntropy = eavg;
-    this.activatedCount = 0;
+  if(this.gettingBaseLine && !isNaN(entropy)) {
+     this.Entropies.data[this.activatedCount] = entropy;
+     this.activatedSum = this.activatedSum + entropy;
+     this.activatedCount++;
+     if(entropy < this.min)
+       this.min = entropy;
+     if(entropy > this.max)
+       this.max = entropy;
+     if(this.activatedCount == 150) {
+       this.gettingBaseLine = false;
+       this.tol = this.activatedSum/this.activatedCount;
+       var sigmaSum = 0;
+       for(var i=0; i<this.activatedCount; i++) {
+           sigmaSum = sigmaSum + (Math.pow((this.Entropies.data[i]-this.tol),2));
+       }
+       this.sigma = Math.sqrt(sigmaSum/this.activatedCount);
+       console.log("Base Entropy is:",this.tol,this.min,this.max,this.sigma,sigmaSum,this.numPixels);
+       this.activatedCount = 0;
+       this.Entropies = {'data':[]};
+     }
+
   } else {
-    if(!isNaN(entropy)) {
-      this.Entropies.data[this.activatedCount] = entropy;
-      this.activatedCount++;
-    }
+
+    if(this.activatedCount == this.activatedCountTol) {
+      var esum = 0.0;
+      var eavg = 0.0;
+      for(var i=0; i<this.Entropies.data.length; i++) {
+	 esum = esum + this.Entropies.data[i];
+      }
+      eavg = esum/this.Entropies.data.length;
+      if(eavg > this.tol+1.0) {
+        if(!this.playing) {
+	  this.PlayTone();
+          this.onFrame = this.frameCount;
+        }
+      } else {
+        if(this.playing)
+	  this.offFrame = this.frameCount;
+      }
+      this.prevEntropy = eavg;
+      this.activatedCount = 0;
+    } else {
+      if(!isNaN(entropy)) {
+        this.Entropies.data[this.activatedCount] = entropy;
+        this.activatedCount++;
+      }
+   }
+  this.frameCount++;
   }
 }
 
@@ -269,12 +302,33 @@ var dist = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
 }
 
 SoundShape.prototype.PlayTone = function () {
-   this.aSineWave.setFrequency(this.tone);
-   this.aSineWave.play();
-   this.playing = true;
+     this.aSineWave.setFrequency(this.tone);
+     this.aSineWave.play();
+     this.playing = true;
 }
 
 SoundShape.prototype.PauseTone = function () {
-   this.aSineWave.pause();
-   this.playing = false;
+     this.aSineWave.pause();
+     this.playing = false;
+}
+
+SoundShape.prototype.makeScales = function () {
+
+   this.Ionian[0] = 0;
+   this.Ionian[1] = 2;
+   this.Ionian[2] = 4;
+   this.Ionian[3] = 5;
+   this.Ionian[4] = 7;
+   this.Ionian[5] = 9;
+   this.Ionian[6] = 11;
+   this.Ionian[7] = 12;
+
+   this.Aeolian[0] = 0;
+   this.Aeolian[1] = 2;
+   this.Aeolian[2] = 3;
+   this.Aeolian[3] = 5;
+   this.Aeolian[4] = 7;
+   this.Aeolian[5] = 8;
+   this.Aeolian[6] = 10;
+   this.Aeolian[7] = 12;
 }
