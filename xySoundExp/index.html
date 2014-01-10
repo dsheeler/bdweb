@@ -13,6 +13,11 @@
   <script type="text/javascript" src="sinewave.js"></script>
   <script type="text/javascript" src="SoundShape.js"></script>
   <script>
+reqAnimFrame = window.mozRequestAnimationFrame
+ || window.webkitRequestAnimationFrame
+ || window.msRequestAnimationFrame
+ || window.oRequestAnimationFrame;
+
 
 window.onload = init;
 var oldData;
@@ -66,12 +71,9 @@ function init() {
   oContext = output.getContext('2d');
   var localStream;
 
-  localVideo.addEventListener('play', function() {
-    draw(localVideo, oContext, localVideo.clientWidth,
-     localVideo.clientHeight);
-  });
+  reqAnimFrame(draw);
   startMedia();
-  
+
   var actxCall = window.webkitAudioContext || window.AudioContext;
   aContext = new actxCall();
   for (var i = 0; i < 12; i++) {
@@ -152,9 +154,10 @@ function playTone(freq) {
   g.gain.linearRampToValueAtTime(1.0, ctx.currentTime+2.0);
   g.gain.linearRampToValueAtTime(2.0, ctx.currentTime+3.00);
 }
-
-
-function draw(v,c,w,h) {
+/*v, c, w, h
+(localVideo, oContext, localVideo.clientWidth,
+     localVideo.clientHeight)*/
+function draw() {
   try {
     if (output.width != localVideo.clientWidth) {
       output.width = localVideo.clientWidth;
@@ -162,8 +165,8 @@ function draw(v,c,w,h) {
       output.style.width = localVideo.clientWidth +'px';
       output.style.height = localVideo.clientHeight + 'px';
     }
-    c.drawImage(v,0,0,output.width,output.height);
-    var imgData = c.getImageData(0, 0, output.width,output.height);
+    oContext.drawImage(localVideo,0,0,output.width,output.height);
+    var imgData = oContext.getImageData(0, 0, output.width,output.height);
     if(oldDataCheck != 1) {
 	    oldData = {'data':[]};
         for(var i=0; i<output.width*output.height*4; i++) {
@@ -200,7 +203,7 @@ function draw(v,c,w,h) {
     }
   }
   frameCount++;
-  setTimeout(draw,20,v,oContext,output.width,output.height);
+  reqAnimFrame(draw);
 }
 
 function resetSums() {
