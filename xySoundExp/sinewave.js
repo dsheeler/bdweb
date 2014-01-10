@@ -12,7 +12,7 @@ SineWave = function(context) {
   this.sampleRate = this.context.sampleRate;
   this.frequency = 440;
   this.next_frequency = this.frequency;
-  this.amplitude = 0.5;
+  this.amplitude = 0.1;
   this.playing = false;
   this.nr = true; // noise reduction
 

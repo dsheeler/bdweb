@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Web Fun</title>
+  <meta charset="utf-8">
+  <!--<link rel="shortcut icon" href="/favicon.png"> -->
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+  <script src="//europa.kradradio.com:8040/mootools-core-1.4.5-full-nocompat.js"></script>
+  <script src="//europa.kradradio.com:8040/mootools-more-1.4.0.1.js"></script>
+
+  <script type="text/javascript" src="adapter.js"></script>
+  <script type="text/javascript" src="sinewave.js"></script>
+  <script type="text/javascript" src="SoundShape.js"></script>
+  <script>
+
+window.onload = init;
+
+var oldData;
+var fuckData;
+var newData;
+var threshold = 75;
+
+var aContext;
+var oConext;
+var output;
+var localVideo;
+var soundShapes = [];
+var oldDataCheck = -1;
+var baseTone = 240;
+//impossible to do anything other than 2d
+var numRows = 4;
+var numCols = 2;
+
+var currentCol1Idx = -1; 
+var currentCol2Idx = -1; 
+var deferCol1Idx = -1;
+var deferCol2Idx = -1;
+
+var rad1 = 25.0;
+var baseTol1 = 666; 
+var baseTol2 = 100;
+function init() {
+  localVideo = document.querySelector('#localVideo');;
+  output = document.querySelector('#output');
+  oContext = output.getContext('2d');
+  var localStream;
+
+  localVideo.addEventListener('play', function() {
+    draw(localVideo, oContext, localVideo.clientWidth,
+     localVideo.clientHeight);
+  });
+  startMedia();
+  
+  var actxCall = window.webkitAudioContext || window.AudioContext;
+  aContext = new actxCall();
+
+  for(var i = 0; i<numCols; i++) {
+   for(var k=0; k<numRows; k++) {
+      idx = k + (i * numRows);
+      if(i == 0) {
+        if(k == 0)
+      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone, rad1, baseTol1, baseTol2));
+        if(k == 1)
+      	   soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,4), rad1, baseTol1, baseTol2));
+        if(k == 2)
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
+        if(k == 3)
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,12), rad1, baseTol1, baseTol2));
+      }
+      if(i == 1) {
+	if(k == 0)
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},baseTone * Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
+        if(k == 1)
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,4))*Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
+        if(k == 2) {
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,7))*Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
+	   console.log("I1K2: Drawled:",Math.round(90+(i*460)),Math.round((420-k*(480/4))));
+        }
+        if(k == 3) {
+           soundShapes.push(new SoundShape(oContext, aContext, {'x':Math.round(90+(i*460)), 'y':Math.round((420-k*(480/4)))},(baseTone * Math.pow(1.05946,12))*Math.pow(1.05946,7), rad1, baseTol1, baseTol2));
+	   console.log("I1K3: Drawled:",Math.round(90+(i*460)),Math.round((420-k*(480/4))));
+        }
+
+      }
+   }
+  }
+  console.log("Made soundShapes:",soundShapes.length);
+}
+
+function startMedia() {
+  var constraints = {video: true, audio: true};
+  getUserMedia(constraints, handleUserMedia, handleUserMediaError);
+  console.log('Getting user media with constraints', constraints);
+}
+
+function handleUserMedia(stream) {
+  console.log('Adding local stream.');
+  if (localVideo == null) {
+    localVideo = document.querySelector('#localVideo');
+  }
+  attachMediaStream(localVideo, stream);
+  localStream = stream;
+}
+
+function draw(v,c,w,h) {
+  try {
+    if (output.width != localVideo.clientWidth) {
+      output.width = localVideo.clientWidth;
+      output.height = localVideo.clientHeight;
+      output.style.width = localVideo.clientWidth +'px';
+      output.style.height = localVideo.clientHeight + 'px';
+    }
+    c.drawImage(v,0,0,output.width,output.height);
+    var imgData = c.getImageData(0, 0, output.width,output.height);
+    if(oldDataCheck != 1) {
+	    oldData = {'data':[]};
+        for(var i=0; i<output.width*output.height*4; i++) {
+	        oldData.data[i] = imgData.data[i];
+        }
+    }
+    for(var i=0; i<output.height; i++) {
+      for(var j=0; j<output.width; j++) {
+        var idx = (j + (i * output.width))*4;
+        imgData.data[idx] = imgData.data[idx+1]
+         = imgData.data[idx+2]
+         = imgData.data[idx]*0.3+imgData.data[idx+1]*0.59
+         +imgData.data[idx+2]*0.1;
+	      var diff = imgData.data[idx] - oldData.data[idx];
+	      oldData.data[idx] = oldData.data[idx+1] = oldData.data[idx+2] = imgData.data[idx];
+	      imgData.data[idx] = imgData.data[idx+1] = imgData.data[idx+2] = diff;
+	    }
+    }
+    for(var i = 0; i<numCols; i++) {
+     for(var j = 0; j<numRows; j++) {
+        var idx = j + (i * numRows);
+        soundShapes[idx].drawCircle();
+        soundShapes[idx].processDiff(imgData);
+      } //end for j
+    } //end for i
+    oldDataCheck = 1;
+  } catch (e) {
+    if (e.name != "NS_ERROR_NOT_AVAILABLE") {
+      throw e;
+    }
+  }
+  setTimeout(draw,20,v,oContext,output.width,output.height);
+}
+
+function handleUserMediaError(error){
+  console.log('navigator.getUserMedia error: ', error);
+}
+
+</script>
+
+</head>
+
+<body>
+  <div id='container'>
+    <div id='videos'>
+      <canvas id='output'></canvas>
+      <video id='localVideo' muted  autoplay style='visibility:hidden'></video>
+    </div>
+  </div>
+</body>
+</html>
