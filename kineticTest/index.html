@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Web Fun</title>
+  <meta charset="utf-8">
+  <!--<link rel="shortcut icon" href="/favicon.png"> -->
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+  <script src="//code.jquery.com/ui/1.10.3/jquery-ui.min.js"></script>
+  <script
+src="http://d3lp1msu2r81bx.cloudfront.net/kjs/js/lib/kinetic-v5.0.0.min.js"></script>
+  <script type="text/javascript" src="../peakmeter.js"></script>
+  <script type="text/javascript" src="../adapter.js"></script>
+  <script type="text/javascript" src="../sinewave.js"></script>
+  <script type="text/javascript" src="../SoundShape.js"></script>
+  <script>
+reqAnimFrame = window.mozRequestAnimationFrame
+ || window.webkitRequestAnimationFrame
+ || window.msRequestAnimationFrame
+ || window.oRequestAnimationFrame;
+
+
+window.onload = init;
+var oldData;
+var fuckData;
+var newData;
+var threshold = 75;
+var aContext;
+var oConext;
+var output;
+var localVideo;
+var soundShapes = [];
+var oldDataCheck = -1;
+var frameCount = 0;
+var meter = null;
+var stage;
+var shapes_layer;
+var video_layer;
+var videoImg;
+
+var width = 640;
+var height = 480;
+//impossible to do anything other than 2d
+var numRows = 3;
+var numCols = 1;
+var numNotes = 12;
+var ionian = [0,2,4,5,7,9,11,12];
+var aeolian = [0,2,3,5,7,9,10,12];
+var chromatic = [0,1,2,3,4,5,6,7,8,9,10,11,12,13];
+
+function init() {
+  localVideo = document.querySelector('#localVideo');;
+  output = document.querySelector('#output');
+  oContext = output.getContext('2d');
+  var localStream;
+
+  var actxCall = window.webkitAudioContext || window.AudioContext;
+  aContext = new actxCall();
+  meter = new PeakMeter('peak', aContext);
+
+  stage = new Kinetic.Stage({
+    container: 'kinetic_container',
+    width: this.width,
+    height: this.height,
+
+  });
+
+  shapes_layer = new Kinetic.Layer();
+  video_layer = new Kinetic.Layer();
+
+  numNotes = ionian.length;
+  var xDelta = 1/(numNotes + 1);
+  stage.add(video_layer);
+  stage.add(shapes_layer);
+
+  for(var i = 0; i < numNotes; i++) {
+    var k = 0;
+    var idx = i
+    var ss = new SoundShape(shapes_layer, aContext,
+     {'x':xDelta*(i+1)*this.width, 'y':this.height/2},
+     440 * Math.pow(1.05946,ionian[i]), 
+     this.height/9,
+     i, 
+     i);
+    soundShapes.push(ss);
+    ss.aSineWave.node.connect(aContext.destination);
+    ss.aSineWave.node.connect(meter.getAudioNode());
+  }
+  console.log("Made soundShapes:",soundShapes.length);
+
+  startMedia();
+
+}
+
+function startMedia() {
+  var constraints = {video: {mandatory: {
+    maxWidth:this.width, maxHeight:this.height}}, audio: true};
+  getUserMedia(constraints, handleUserMedia, handleUserMediaError);
+  console.log('Getting user media with constraints', constraints);
+}
+
+function handleUserMedia(stream) {
+  console.log('Adding local stream.');
+  if (localVideo == null) {
+    localVideo = document.querySelector('#localVideo');
+  }
+  attachMediaStream(localVideo, stream);
+  meter.getAudioNode().connect(aContext.destination);
+  var streamAudio = aContext.createMediaStreamSource(stream);
+  streamAudio.connect(meter.getAudioNode());
+  localStream = stream;
+  reqAnimFrame(draw);
+
+}
+
+function playFourChord(freq) {
+  var ctx = aContext;
+  var o = ctx.createOscillator();
+  var o1 = ctx.createOscillator();
+  var o2 = ctx.createOscillator();
+  var o3 = ctx.createOscillator();
+  var g = ctx.createGain();
+
+  o.frequency.value = freq;
+  o.type = "sawtooth";
+
+  o1.frequency.value = freq+17.5;
+  o1.type = "sawtooth";
+
+  o2.frequency.value = freq+23.5;
+  o2.type = "sawtooth";
+
+  o3.frequency.value = freq-40.5;
+  o3.type = "sawtooth";
+
+
+
+  o.connect(g);
+  o1.connect(g);
+  o2.connect(g);
+  o3.connect(g);
+
+  g.connect(ctx.destination);
+  g.gain.setValueAtTime(0.0,ctx.currentTime);
+
+  o.start(ctx.currentTime);
+  o1.start(ctx.currentTime);
+  o2.start(ctx.currentTime);
+  o3.start(ctx.currentTime);
+
+  g.gain.linearRampToValueAtTime(0.25, ctx.currentTime+0.5);
+  g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+0.75);
+  g.gain.linearRampToValueAtTime(0.75, ctx.currentTime+1.00);
+}
+
+function playTone(freq) {
+  var ctx = aContext;
+  var o = ctx.createOscillator();
+  var g = ctx.createGain();
+  o.frequency.value = freq;
+  o.type = "triangle";
+
+  o.connect(g);
+  g.connect(ctx.destination);
+  g.gain.setValueAtTime(0.0,ctx.currentTime);
+  o.start(ctx.currentTime);
+  g.gain.linearRampToValueAtTime(0.25, ctx.currentTime+1.0);
+  g.gain.linearRampToValueAtTime(1.0, ctx.currentTime+2.0);
+  g.gain.linearRampToValueAtTime(2.0, ctx.currentTime+3.00);
+}
+/*v, c, w, h
+(localVideo, oContext, localVideo.clientWidth,
+     localVideo.clientHeight)*/
+function draw(timestamp) {
+
+  try {
+    if (output.width != localVideo.clientWidth) {
+      output.width = localVideo.clientWidth;
+      output.height = localVideo.clientHeight;
+      output.style.width = localVideo.clientWidth +'px';
+      output.style.height = localVideo.clientHeight + 'px';
+    }
+
+    var tmpCanvas = video_layer.getCanvas();
+    var tmpContext = tmpCanvas.getContext('2d');
+
+    tmpContext.save();
+    tmpContext.translate(output.width/2, output.height/2);
+    tmpContext.scale(-1,1);
+    tmpContext.translate(-output.width/2, -output.height/2);
+    tmpContext.drawImage(localVideo,0,0,output.width,output.height);
+    tmpContext.restore();
+    var imgData = tmpContext.getImageData(0, 0, output.width,output.height);
+        if(oldDataCheck != 1) {
+	    oldData = {'data':[]};
+        for(var i=0; i<output.width*output.height*4; i++) {
+	        oldData.data[i] = imgData.data[i];
+        }
+    }
+    for(var i=0; i<output.height; i++) {
+      for(var j=0; j<output.width; j++) {
+        var idx = (j + (i * output.width))*4;
+        imgData.data[idx] = imgData.data[idx+1]
+         = imgData.data[idx+2]
+         = imgData.data[idx]*0.3+imgData.data[idx+1]*0.59
+         +imgData.data[idx+2]*0.1;
+	      var diff = imgData.data[idx] - oldData.data[idx];
+	      oldData.data[idx] = oldData.data[idx+1] = oldData.data[idx+2] = imgData.data[idx];
+	      imgData.data[idx] = imgData.data[idx+1] = imgData.data[idx+2] = diff;
+	    }
+    }
+    var yCenterMin1 = 999999;
+    var yCenterMin2 = 999999;
+    var yCenterMin3 = 999999;
+    var playCol1Idx = -1;
+    var playCol2Idx = -1;
+    var playCol3Idx = -1;
+    for(var i = 0; i< numNotes; i++) {
+        var idx = (i );
+        soundShapes[idx].processDiff(imgData);
+        //first column
+	      if(j == 0) {
+          if(soundShapes[idx].activated) {
+            if(soundShapes[idx].center.y < yCenterMin1) {
+		          yCenterMin1 = soundShapes[idx].center.y;
+		          playCol1Idx = idx;
+	          }
+          }
+        }
+	      //second column
+	      if(j == 1) {
+          if(soundShapes[idx].activated) {
+            if(soundShapes[idx].center.y < yCenterMin2) {
+              yCenterMin2 = soundShapes[idx].center.y;
+              playCol2Idx = idx;
+            }
+          }
+        }
+	      //third
+	      if(j == 2) {
+          if(soundShapes[idx].activated) {
+            if(soundShapes[idx].center.y < yCenterMin3) {
+              yCenterMin3 = soundShapes[idx].center.y;
+              playCol3Idx = idx;
+            }
+          }
+        }
+    } //end for i
+    //play highest Ys
+    //if(frameCount % 10 == 0 ) {
+      if(playCol1Idx != -1)
+        soundShapes[playCol1Idx].playFromOutSide();
+      if(playCol2Idx != -1)
+        soundShapes[playCol2Idx].playFromOutSide();
+      if(playCol3Idx != -1)
+        soundShapes[playCol3Idx].playFromOutSide();
+
+    //}
+    oldDataCheck = 1;
+  } catch (e) {
+    if (e.name != "NS_ERROR_NOT_AVAILABLE") {
+      throw e;
+    }
+  }
+  frameCount++;
+  reqAnimFrame(draw);
+  if(frameCount > 1000)
+    frameCount = 0;
+}
+
+function handleUserMediaError(error){
+  console.log('navigator.getUserMedia error: ', error);
+}
+
+</script>
+
+</head>
+
+<body>
+  <div id='container'>
+    <div style='float:left' id='kinetic_container'></div>
+    <canvas id='peak'></canvas>
+    <div id='videos'>
+      <canvas id='output'></canvas>
+      <video id='localVideo' muted  autoplay style='visibility:hidden'></video>
+    </div>
+  </div>
+</body>
+</html>

@@ -4,46 +4,43 @@
   <title>jkmeter Web Audio Clone</title>
   <meta charset="utf-8">
   <!--<link rel="shortcut icon" href="/favicon.png"> -->
-
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+  <script src="//code.jquery.com/ui/1.10.3/jquery-ui.min.js"></script>
 
   <script type="text/javascript" src="../peakmeter.js"></script>
   <script type="text/javascript" src="../adapter.js"></script>
+
+  <style>
+body {
+  background-color: #000;
+}
+
+#peak {
+  border-radius: 6px;
+  border: 6px solid rgb(68, 68, 68);
+  box-shadow: 0 0 6px 6px rgb(68, 68, 68);
+}
+
+  </style>
+
   <script>
-window.requestAnimationFrame = window.requestAnimationFrame 
- || window.mozRequestAnimationFrame 
- || window.webkitRequestAnimationFrame 
+window.requestAnimationFrame = window.requestAnimationFrame
+ || window.mozRequestAnimationFrame
+ || window.webkitRequestAnimationFrame
  || window.msRequestAnimationFrame;
 
 window.onload = init;
 
 var aContext;
-var context;
-var oConext;
-var canvas;
-var meters = [];
-var names = ['peakl', 'peakr'];
+var meter = null;
+var name = 'peak';
 
 function init() {
-  var canvases = [];
-  canvases[0] = document.querySelector('#peakl');
-  canvases[1] = document.querySelector('#peakr');
-  canvases[0].style.width = canvases[1].style.width = '60px';
-  canvases[0].style.height = canvases[1].style.height = '480px';
-  canvases[0].width = canvases[1].width = 60;
-  canvases[0].height = canvases[1].height = 480;
-
   var actxCall = window.webkitAudioContext || window.AudioContext;
   aContext = new actxCall();
-
-  for (var channel = 0; channel < 2; channel++) {
-    meters[channel] = new PeakMeter(names[channel], aContext, channel);
-  }
-
+  meter = new PeakMeter(name, aContext);
   requestAnimationFrame(function(timestamp) {
-    for (var i = 0; i < meters.length; i++) {
-      meters[i].update(timestamp);
-    }
+    meter.update(timestamp);
   });
   startMedia();
 }
@@ -51,15 +48,12 @@ function init() {
 function startMedia() {
   var constraints = {audio: true};
   getUserMedia(constraints, handleUserMedia, handleUserMediaError);
-  console.log('Getting user media with constraints', constraints);
 }
 
 function handleUserMedia(stream) {
-  var microphone = aContext.createMediaStreamSource(stream);
-  for (var i = 0; i < meters.length; i++) {
-    microphone.connect(meters[i].getAudioNode());
-    meters[i].getAudioNode().connect(aContext.destination);
-  }
+  microphone = aContext.createMediaStreamSource(stream);
+  microphone.connect(meter.getAudioNode());
+  meter.getAudioNode().connect(aContext.destination);
 }
 
 function handleUserMediaError(error){
@@ -70,8 +64,7 @@ function handleUserMediaError(error){
 </head>
 <body>
   <div id='container'>
-    <canvas id='peakl'></canvas>
-    <canvas id='peakr'></canvas>
+    <canvas id='peak'></canvas>
   </div>
 </body>
 </html>

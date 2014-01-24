@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hello Web - Processing.js Test</title>
+  <script
+src="http://six600110.com/bdweb/processingJsTest/processing-1.4.1.min.js">
+  </script>
+  <script>
+var location;// = processing.PVector;  // Location of shape
+var velocity;// = processing.PVector;  // Velocity of shape
+var gravity;// = processing.PVector;   // Gravity acts at the shape's acceleration
+
+function sketchProc(processing) {
+  processing.setup = function() {
+    processing.size(1280, 720);
+    processing.background(100);
+    processing.smooth();
+    location = new processing.PVector(processing.width/2, processing.height*0.8);
+    velocity = new processing.PVector(2,0);
+    gravity = new processing.PVector(0,0.2);
+
+  }
+
+  processing.draw = function() {
+    //background(0);
+
+    // Add velocity to the location.
+    location.add(velocity);
+    // Add gravity to velocity
+    var angle = processing.atan2(location.y - processing.height/2, location.x 
+     - processing.width/2);
+    var a = location.y - processing.height/2;
+    var b = location.x - processing.width/2;
+    var r = processing.sqrt(a*a + b*b);
+    r = processing.max(r, 0.01);  
+    var r2 = r*r;
+
+    gravity.x = -5000*processing.cos(angle)/r2;
+    gravity.y = -5000*processing.sin(angle)/r2;
+    velocity.add(gravity);
+
+    if (processing.mousePressed) {
+      location.x = processing.mouseX;
+      location.y = processing.mouseY;
+      velocity.x = processing.mouseX - processing.pmouseX;
+      velocity.y = processing.mouseY - processing.pmouseY; 
+    }
+
+    // Bounce off edges
+    if (location.x > processing.width) {
+      velocity.x = velocity.x * -1;
+      location.x = processing.width
+    }
+    
+    if (location.x < 0) {
+      velocity.x = velocity.x * -1;
+      location.x = 0;
+    }
+    
+    if (location.y > processing.height) {
+      velocity.y = velocity.y * -1; 
+      location.y = processing.height;
+    }
+
+    if (location.y < 0) {
+      velocity.y = velocity.y * -1;
+      location.y = 0;
+    }
+  
+    // Display circle at location vector
+    processing.stroke(255);
+    processing.strokeWeight(2);
+    processing.fill(127);
+    processing.ellipse(location.x,location.y,48,48);
+  }
+}
+
+window.onload = function() {
+  var canvas = document.getElementById("canvas1");
+  // attaching the sketchProc function to the canvas
+  var processingInstance = new Processing(canvas, sketchProc);
+} 
+  </script>  
+  </head>
+<body>
+<h1>Processing.js Test</h1>
+  <p>This is my first Processing.js web-based sketch:</p>
+  <canvas id='canvas1'></canvas>
+  <canvas data-processing-sources="bouncingBall/bouncingBall.pde"></canvas>
+</body>
+</html>
+
