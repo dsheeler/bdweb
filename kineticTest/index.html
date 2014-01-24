@@ -83,8 +83,8 @@ function init() {
      i, 
      i);
     soundShapes.push(ss);
-    ss.aSineWave.node.connect(aContext.destination);
-    ss.aSineWave.node.connect(meter.getAudioNode());
+    ss.aSineWave.getOutNode().connect(aContext.destination);
+    ss.aSineWave.getOutNode().connect(meter.getAudioNode());
   }
   console.log("Made soundShapes:",soundShapes.length);
 

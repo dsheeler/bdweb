@@ -7,7 +7,6 @@ SoundShape = function(shapes_layer, aContext, center, tone, radius, note, label)
    this.center = center;
    this.radius = radius;
    this.note = note
-   this.aSineWave = new SineWave(aContext);
    this.shapes_layer = shapes_layer;
    this.audioContext = aContext;
    this.tol = 0;
@@ -34,6 +33,8 @@ SoundShape = function(shapes_layer, aContext, center, tone, radius, note, label)
    this.Chromatic = [0,1,2,3,4,5,6,7,8,9,10,11,12,13];
    this.makeScales();
    this.tone = tone;
+   this.aSineWave = new SineWave(aContext);
+   this.aSineWave.setFrequency(this.tone);
 
    this.kgroup = new Kinetic.Group({
    });
@@ -141,26 +142,28 @@ SoundShape.prototype.processDiff = function(diffData) {
       if(this.activatedCount == this.activatedCountTol) {
     	if(this.activatedSum/this.activatedCountTol > this.tol) {
 	    if(!this.playing) {
-	      this.setTone(this.tone);
+        //this.aSineWave = new SineWave(aContext);
+        //this.aSineWave.setFrequency(this.tone);
+
   	    this.aSineWave.play();
   	    this.playing = true;
         this.setFillStyle();
         this.onFrame = this.frameCount;
 	    }
     } else if(this.activatedSum/this.activatedCountTol < this.tol2) {
-           if(this.playing) {
-             this.offFrame = this.frameCount;
-             this.playing = false;
-             this.setFillStyle();
-             this.aSineWave.pause();
-           }
-         }
+      if(this.playing) {
+        this.offFrame = this.frameCount;
+        this.playing = false;
+        this.setFillStyle();
+        this.aSineWave.pause();
+      }
+    }
       this.activatedSum = 0.0;
       this.activatedCount = 0;
-      } else {
+    } else {
       this.activatedCount++;
-      }
-   }
+    }
+  }
 }
 
 SoundShape.prototype.GetEntropy = function(imgData) {
@@ -330,7 +333,6 @@ var dist = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
 }
 
 SoundShape.prototype.PlayTone = function () {
-     this.aSineWave.setFrequency(this.tone);
      this.aSineWave.play();
      this.playing = true;
 }
