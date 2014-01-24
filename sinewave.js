@@ -17,7 +17,8 @@ SineWave = function(context) {
   this.nr = true; // noise reduction
 
   // Create an audio node for the tone generator
-  this.node = context.createScriptProcessor(1024);
+  this.node = context.createScriptProcessor(4096, 2, 2);
+  this.node.connect(this.context.destination);
 
   // Setup audio data callback for this node. The callback is called
   // when the node is connected and expects a buffer full of audio data
@@ -44,7 +45,6 @@ SineWave.prototype.setFrequency = function(freq) {
 }
 
 SineWave.prototype.process = function(e) {
-  if (!this.playing) return;
   // Get a reference to the output buffer and fill it up.
   var right = e.outputBuffer.getChannelData(0),
       left = e.outputBuffer.getChannelData(1);
@@ -52,9 +52,12 @@ SineWave.prototype.process = function(e) {
   // We need to be careful about filling up the entire buffer and not
   // overflowing.
   for (var i = 0; i < right.length; ++i) {
-    right[i] = left[i] = this.amplitude * Math.sin(
+    if (!this.playing) {
+      right[i] = left[i] = 0.0;
+    } else {
+      right[i] = left[i] = this.amplitude * Math.sin(
         this.x++ / (this.sampleRate / (this.frequency * 2 * Math.PI)));
-
+    }
     // A vile low-pass-filter approximation begins here.
     //
     // This reduces high-frequency blips while switching frequencies. It works
@@ -82,7 +85,6 @@ SineWave.prototype.process = function(e) {
 
 SineWave.prototype.play = function() {
   // Plug the node into the output.
-  this.node.connect(this.context.destination);
   this.playing = true;
 }
 

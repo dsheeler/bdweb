@@ -109,15 +109,7 @@ PeakMeter.prototype.drawData = function(x, chanNum) {
   this.flag[chanNum] = 1;
 }
 
-
-PeakMeter.prototype.drawBar = function(x, chanNum, tickSide) {
-  var w = this.canvas.width;
-  var h = this.canvas.height - this.headerHeight - this.footerHeight;
-  var bottom = h;
-
-  this.cContext.fillStyle = this.dgradient;
-  this.cContext.fillRect(x, 0, this.barWidth, bottom);
-
+PeakMeter.prototype.drawBarTicks = function(x, h) {
   this.cContext.fillStyle = this.gradient;
 
   this.drawTick(h, 1e-10, "", "#6666ff");
@@ -138,6 +130,16 @@ PeakMeter.prototype.drawBar = function(x, chanNum, tickSide) {
   this.drawTick(h, 1, "20", "#FF4C00");
 }
 
+PeakMeter.prototype.drawBar = function(x) {
+  var w = this.canvas.width;
+  var h = this.canvas.height - this.headerHeight - this.footerHeight;
+  var bottom = h;
+
+  this.cContext.fillStyle = this.dgradient;
+  this.cContext.fillRect(x, 0, this.barWidth, bottom);
+
+}
+
 PeakMeter.prototype.makeBackground = function() {
   var w = this.canvas.width;
   var h = this.canvas.height - this.headerHeight - this.footerHeight;
@@ -151,6 +153,7 @@ PeakMeter.prototype.makeBackground = function() {
 
   var x = w/2 - this.tickWidth/2 - this.barWidth;
   this.drawBar(x, 0);
+  this.drawBarTicks(x, h);
   x = w/2 + this.tickWidth/2;
   this.drawBar(x, 1);
   this.cContext.restore();
@@ -162,13 +165,15 @@ PeakMeter.prototype.update = function(timestamp) {
   var w = this.canvas.width;
   var h = this.canvas.height - this.headerHeight - this.footerHeight;
 
-  this.cContext.putImageData(this.backgroundImage, 0, 0);
+//  this.cContext.putImageData(this.backgroundImage, 0, 0);
   this.cContext.save();
   this.cContext.translate(0, this.headerHeight);
 
   var x = w/2 - this.tickWidth/2 - this.barWidth;
+  this.drawBar(x);
   this.drawData(x, 0);
   x = w/2 + this.tickWidth/2;
+  this.drawBar(x);
   this.drawData(x, 1);
   this.cContext.restore();
 
@@ -181,7 +186,12 @@ PeakMeter.prototype.update = function(timestamp) {
 }
 
 PeakMeter.prototype.drawMaxPeak = function() {
-  this.cContext.fillStyle = '#ffffff';
+  var w = this.canvas.width;
+  var h = this.headerHeight - 4;
+  this.cContext.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  this.cContext.clearRect(0, 0, w, h);
+  this.cContext.fillRect(0, 0, w, h);
+
   var peakdb = new Number(20 * Math.log(this.allTimePeak) / Math.log(10));
   if (peakdb <= -85) return;
   this.cContext.font = '16px sans';
@@ -193,10 +203,10 @@ PeakMeter.prototype.drawMaxPeak = function() {
   this.cContext.translate(x, y);
   this.cContext.scale(1/1.6, 1/1.6);
   this.cContext.translate(-x, -y);
+  this.cContext.fillStyle = '#ffffff';
   this.cContext.textAlign="center";
   this.cContext.fillText(peakdb.toPrecision(2), x, y);
   this.cContext.restore();
-
 
 }
 
