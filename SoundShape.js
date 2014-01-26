@@ -35,6 +35,7 @@ SoundShape = function(shapes_layer, aContext, center, tone, radius, note, label)
    this.tone = tone;
    this.aSineWave = new SineWave(aContext);
    this.aSineWave.setFrequency(this.tone);
+   this.bell = new Bell(aContext);
 
    this.kgroup = new Kinetic.Group({
    });
@@ -146,6 +147,7 @@ SoundShape.prototype.processDiff = function(diffData) {
         //this.aSineWave.setFrequency(this.tone);
 
   	    this.aSineWave.play();
+        //this.bell.play();
   	    this.playing = true;
         this.setFillStyle();
         this.onFrame = this.frameCount;

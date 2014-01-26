@@ -13,7 +13,10 @@ src="http://d3lp1msu2r81bx.cloudfront.net/kjs/js/lib/kinetic-v5.0.0.min.js"></sc
   <script type="text/javascript" src="../adapter.js"></script>
   <script type="text/javascript" src="../sinewave.js"></script>
   <script type="text/javascript" src="../SoundShape.js"></script>
+  <script type="text/javascript" src="../bell.js"></script>
+  <script type="text/javascript" src="../synth.js"></script>
   <script>
+
 reqAnimFrame = window.mozRequestAnimationFrame
  || window.webkitRequestAnimationFrame
  || window.msRequestAnimationFrame
@@ -38,11 +41,9 @@ var shapes_layer;
 var video_layer;
 var videoImg;
 
+var convolver = 0;
 var width = 640;
 var height = 480;
-//impossible to do anything other than 2d
-var numRows = 3;
-var numCols = 1;
 var numNotes = 12;
 var ionian = [0,2,4,5,7,9,11,12];
 var aeolian = [0,2,3,5,7,9,10,12];
@@ -73,17 +74,32 @@ function init() {
   stage.add(video_layer);
   stage.add(shapes_layer);
 
+  convolver = aContext.createConvolver();
+  var noiseBuffer = aContext.createBuffer(2, 1 * aContext.sampleRate,
+   aContext.sampleRate),
+   left = noiseBuffer.getChannelData(0),
+   right = noiseBuffer.getChannelData(1);
+  for (var i = 0; i < noiseBuffer.length; i++) {
+    left[i] = Math.random() * 2 - 1;
+    right[i] = Math.random() * 2 - 1;
+  }
+  convolver.buffer = noiseBuffer;
+  convolver.connect(aContext.destination);
+
   for(var i = 0; i < numNotes; i++) {
     var k = 0;
     var idx = i
     var ss = new SoundShape(shapes_layer, aContext,
-     {'x':xDelta*(i+1)*this.width, 'y':this.height/2},
+     {'x':xDelta*(i+1)*this.width, 'y':this.height/4},
      440 * Math.pow(1.05946,ionian[i]), 
-     this.height/9,
+     this.width/(numNotes*3),
      i, 
-     i);
+     i+1);
+
     soundShapes.push(ss);
-    ss.aSineWave.getOutNode().connect(aContext.destination);
+    ss.bell.getOutNode().connect(aContext.destination);
+    ss.bell.getOutNode().connect(meter.getAudioNode());
+    ss.aSineWave.getOutNode().connect(convolver);
     ss.aSineWave.getOutNode().connect(meter.getAudioNode());
   }
   console.log("Made soundShapes:",soundShapes.length);

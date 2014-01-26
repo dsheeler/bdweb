@@ -9,7 +9,7 @@ Mohit Cheppudira - http://0xfe.blogspot.com
 SineWave = function(context) {
   this.context = context;
   this.frequency = 440;
-  this.amplitude = 0.1;
+  this.amplitude = 0.4;
   this.playing = false;
 
   this.masterGain = this.context.createGain();
@@ -19,6 +19,7 @@ SineWave = function(context) {
   this.gain.gain.value = 0;
   this.gain.connect(this.masterGain);
   this.osc.connect(this.gain);
+  this.osc.start(this.context.currentTime);
 }
 
 SineWave.prototype.setAmplitude = function(amplitude) {
@@ -31,38 +32,36 @@ SineWave.prototype.setFrequency = function(freq) {
 }
 
 SineWave.prototype.play = function() {
-  console.log('play called');
   if (!this.playing) {
-    console.log('play: inside'); 
-    this.playing = true;
-    this.osc.start(this.context.currentTime);
-    this.gain.gain.cancelScheduledValues(0.0);
-    this.gain.gain.setValueAtTime(0.0, 0.000001 + this.context.currentTime);
-
+    var delay = 1;
+    this.gain.gain.cancelScheduledValues( this.context.currentTime);
+    this.gain.gain.linearRampToValueAtTime(0.0, 0.1 + this.context.currentTime);
     //this.gain.gain.linearRampToValueAtTime(0.1, 0.2 + this.context.currentTime);
     //his.gain.gain.linearRampToValueAtTime(0, 0.1 + this.context.currentTime);
-    this.gain.gain.linearRampToValueAtTime(0.15, 0.1 + this.context.currentTime);
-    this.gain.gain.linearRampToValueAtTime(0.1, 0.2 + this.context.currentTime);
+    this.gain.gain.linearRampToValueAtTime(this.amplitude*1.5, 0.101 + this.context.currentTime);
+    this.gain.gain.linearRampToValueAtTime(this.amplitude,  0.102 + this.context.currentTime);
+    this.playing = true;
   }
 }
 
 SineWave.prototype.pause = function() {
-  console.log('pause called');
   if (this.playing) {
-    console.log('inside pause');
-    var release = 10;
+    var delay = 0.1;
+    var release = 2.0;
     var oldGain = this.gain;
     var oldOsc = this.osc;
-    oldGain.gain.cancelScheduledValues(0);
-    oldGain.gain.setValueAtTime(this.amplitude, 0.0001 + this.context.currentTime);
-    oldGain.gain.linearRampToValueAtTime(0.000000000001, release + this.context.currentTime);
-    this.playing = false;
+    var g = oldGain.gain.value;
+    oldGain.gain.cancelScheduledValues(this.context.currentTime);
+    oldGain.gain.linearRampToValueAtTime(this.amplitude, this.context.currentTime);
+    oldGain.gain.linearRampToValueAtTime(0.0, release + this.context.currentTime);
     this.osc = this.context.createOscillator();
     this.osc.frequency.value = this.frequency;
     this.gain = this.context.createGain();
-    this.gain.gain.value = 0;
+    this.gain.gain.linearRampToValueAtTime(0, this.context.currentTime);
     this.gain.connect(this.masterGain);
     this.osc.connect(this.gain);
+    this.osc.start(this.context.currentTime);
+    this.playing = false;
   }
 }
 
