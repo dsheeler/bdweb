@@ -6,12 +6,11 @@ var BELL = 3;
 
 
 //sound shape takes a canvas drawling context and an audio context and x y point
-SoundShape = function(shapes_layer, aContext, center, instId, tone, radius, note, label) {
+SoundShape = function(shapes_layer, aContext, center, instId, tone, radius, label) {
   this.instId = instId;
   this.label = label;
    this.center = center;
    this.radius = radius;
-   this.note = note
    this.amplitude = 0;
    this.shapes_layer = shapes_layer;
    this.audioContext = aContext;

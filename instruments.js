@@ -5,7 +5,7 @@ function BassDrum(context) {
   this.osc.start(0);
 
   //envelope with 0.001 sec attack and 0.5 sec decay
-  this.envelope = context.createEnvelope(0.0021, 0.02, 0.8,0.01);
+  this.envelope = context.createEnvelope(0.05, 0.08, 0.6,0.09);
 
   this.waveShaper = context.createWaveShaper();
   this.numpts = 2048;
@@ -18,16 +18,16 @@ function BassDrum(context) {
   this.waveShaper.curve = this.wsCurve;
 
   this.g = context.createGain();
-  this.g.gain.value = 2;
-  this.osc.connect(this.envelope);
-  this.envelope.connect(this.g);
+  this.g.gain.value = 0.7;
+  this.osc.connect(this.g);
+  this.g.connect(this.envelope);
 
   this.envelope.connect(this.waveShaper);
 
 }
 
 BassDrum.prototype.trigger = function(){
-  this.envelope.trigger(0.2);
+  this.envelope.trigger(0.4);
 }
 
 BassDrum.prototype.connect = function(dest){

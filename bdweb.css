@@ -1,0 +1,17 @@
+#kinetic_container, #peak, #masterBus {
+  box-shadow: 0 0 15px 3px;
+  height: 480px;
+  margin-left: 15px;
+  margin-top: 15px;
+}
+
+.video {
+  display: none;
+}
+
+body {
+  background-color: #333
+}
+
+
+

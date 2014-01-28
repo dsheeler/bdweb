@@ -16,6 +16,7 @@ src="http://d3lp1msu2r81bx.cloudfront.net/kjs/js/lib/kinetic-v5.0.0.min.js"></sc
   <script type="text/javascript" src="../SoundShape.js"></script>
   <script type="text/javascript" src="../bell.js"></script>
   <script type="text/javascript" src="../synth.js"></script>
+  <link rel="stylesheet" type="text/css" href="../bdweb.css"/>
   <script>
 
 reqAnimFrame = window.mozRequestAnimationFrame
@@ -105,7 +106,6 @@ function init() {
      SINE_WAVE,
      freq,
      this.width/(numNotes*3),
-     i, 
      (i+1) + "\n" + freq.toPrecision(4));
 
     soundShapes.push(ss);
@@ -128,7 +128,6 @@ function init() {
      SINE_WAVE,
      freq,
      this.width/(numNotes *3),
-     i, 
      (i+1) + "\n" + freq.toPrecision(4));
 
     ss.setAmplitude(0.5);
@@ -143,7 +142,6 @@ function init() {
       BASS_DRUM,
       0,
       this.width/10,
-      0,
       "BassFUFace"
       );
   bassSs.connect(masterBus);
@@ -335,7 +333,7 @@ function handleUserMediaError(error){
   <div id='container'>
     <div style='float:left' id='kinetic_container'></div>
     <canvas id='peak'></canvas>
-    <div id="masterBus" style="height:480px;"></div>
+    <div id="masterBus" style="float:left; height:480px;"></div>
     <div id='videos'>
       <video id='localVideo' muted  autoplay style='visibility:hidden'></video>
     </div>
