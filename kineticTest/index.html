@@ -40,6 +40,8 @@ var shapes_layer;
 var video_layer;
 var videoImg;
 
+var feedbackDelay = 0;
+var compressor = 0;
 var convolver = 0;
 var masterBus = 0;
 var width = 640;
@@ -92,6 +94,35 @@ function init() {
     right[i] = Math.random() * 2 - 1;
   }
   convolver.buffer = noiseBuffer;
+  compressor = aContext.createDynamicsCompressor();
+  feedbackDelay = aContext.createFeedbackDelay(0.2, 0.5);
+  $('#delay').slider({
+    orientation: 'vertical',
+    range: 'min',
+    min: 0,
+    max: 100, 
+    value: 40,
+    slide: function(event, ui) {
+      feedbackDelay.delayTime.value = ui.value/100;
+    }
+  });
+  feedbackDelay.delayTime.value = $('#delay').slider('value')/100;
+
+  $('#feedback').slider({
+    orientation: 'vertical',
+    range: 'min',
+    min: 0,
+    max: 100, 
+    value: 50,
+    slide: function(event, ui) {
+      feedbackDelay.gainNode.gain.value = ui.value/100;
+    }
+  });
+  feedbackDelay.gainNode.gain.value = $('#feedback').slider('value')/100;
+
+  feedbackDelay.connect(compressor);
+  convolver.connect(compressor);
+  compressor.connect(masterBus);
   masterBus.connect(aContext.destination);
   masterBus.connect(meter.getAudioNode());
   numNotes = ionian.length;
@@ -109,11 +140,10 @@ function init() {
      (i+1) + "\n" + freq.toPrecision(4));
 
     soundShapes.push(ss);
-    ss.bell.getOutNode().connect(masterBus);
+    ss.connect(feedbackDelay);
     //convolver.connect(masterBus);
     //ss.aSineWave.getOutNode().connect(convolver);
     ss.setAmplitude(0.1);
-    ss.connect(masterBus);
   }
 
   numNotes = aeolian.length;
@@ -132,8 +162,6 @@ function init() {
 
     ss.setAmplitude(0.5);
     soundShapes.push(ss);
-    ss.bell.getOutNode().connect(masterBus);
-    convolver.connect(masterBus);
     ss.connect(convolver);
   }
 
@@ -144,8 +172,7 @@ function init() {
       this.width/10,
       "BassFUFace"
       );
-  bassSs.connect(masterBus);
-  bassSs.connect(meter.getAudioNode());
+  bassSs.connect(feedbackDelay);
   soundShapes.push(bassSs);
   console.log("Made soundShapes:",soundShapes.length);
 
@@ -333,7 +360,9 @@ function handleUserMediaError(error){
   <div id='container'>
     <div style='float:left' id='kinetic_container'></div>
     <canvas id='peak'></canvas>
-    <div id="masterBus" style="float:left; height:480px;"></div>
+    <div id="masterBus" class='slider'></div>
+    <div id="delay" class='slider'></div>
+    <div id="feedback" class='slider'></div>
     <div id='videos'>
       <video id='localVideo' muted  autoplay style='visibility:hidden'></video>
     </div>
