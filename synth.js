@@ -64,7 +64,7 @@
   }
 
   function FeedbackDelayFactory(context, delayTime, feedback){
-    var delay = context.createDelayNode(delayTime + 1);
+    var delay = context.createDelay(delayTime + 1);
     FeedbackDelayNode.call(delay, context, delayTime, feedback);
     return delay;
   }

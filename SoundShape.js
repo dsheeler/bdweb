@@ -1,12 +1,18 @@
+var BASS_DRUM = 1;
+var SINE_WAVE = 2;
+var BELL = 3;
+
 
 
 
 //sound shape takes a canvas drawling context and an audio context and x y point
-SoundShape = function(shapes_layer, aContext, center, tone, radius, note, label) {
-   this.label = label;
+SoundShape = function(shapes_layer, aContext, center, instId, tone, radius, note, label) {
+  this.instId = instId;
+  this.label = label;
    this.center = center;
    this.radius = radius;
    this.note = note
+   this.amplitude = 0;
    this.shapes_layer = shapes_layer;
    this.audioContext = aContext;
    this.tol = 0;
@@ -33,12 +39,11 @@ SoundShape = function(shapes_layer, aContext, center, tone, radius, note, label)
    this.Chromatic = [0,1,2,3,4,5,6,7,8,9,10,11,12,13];
    this.makeScales();
    this.tone = tone;
-   this.aSineWave = new SineWave(aContext);
-   this.aSineWave.setFrequency(this.tone);
    this.bell = new Bell(aContext);
-
+   this.bassDrum = new BassDrum(aContext);
+   this.connections = [];
    this.kgroup = new Kinetic.Group({
-   });
+  });
 
 
   this.kshape = new Kinetic.Circle({
@@ -51,9 +56,9 @@ SoundShape = function(shapes_layer, aContext, center, tone, radius, note, label)
 
   this.text = new Kinetic.Text({
     text: this.label,
-    x: this.center.x - this.radius,
-    y: this.center.y,
-    width: 2 * this.radius,
+    x: this.center.x - 2 * this.radius,
+    y: this.center.y - 0.5 * this.radius,
+    width: 4 * this.radius,
     offsetY: 9,
     fontSize: 18,
     fontFamily: 'Calibri',
@@ -81,9 +86,17 @@ SoundShape = function(shapes_layer, aContext, center, tone, radius, note, label)
 
 }
 
+SoundShape.prototype.connect = function(node) {
+  this.connections.push(node);
+  this.bassDrum.connect(node);
+}
 
 SoundShape.prototype.setCenter = function(p) {
   this.center = p;
+}
+
+SoundShape.prototype.setAmplitude = function(a) {
+  this.amplitude = a;
 }
 
 SoundShape.prototype.setTone = function(t) {
@@ -108,7 +121,7 @@ SoundShape.prototype.setFillStyle = function() {
   this.shapes_layer.draw();
 }
 
-SoundShape.prototype.processDiff = function(diffData) {
+SoundShape.prototype.processDiff = function(diffData, width) {
   this.frameCount++;
   var sum = 0;
   var yStart = Math.round(this.center.y - this.radius) 
@@ -117,49 +130,65 @@ SoundShape.prototype.processDiff = function(diffData) {
   var xEnd  = Math.round(this.center.x + this.radius);
   for(var i=yStart; i<yEnd; i++) {
     for(var j=xStart; j<xEnd; j++) {
-      var idx = (j + (i * output.width))*4;
+      var idx = (j + (i * width))*4;
       if (this.isIn(j,i)) {
         sum += diffData.data[idx]*diffData.data[idx];
       }
     }
   }
   if(sum == 0 || isNaN(sum)) {
-     return;
+    return;
   } else {
-     this.activatedSum = this.activatedSum + Math.sqrt(sum);
+    this.activatedSum = this.activatedSum + Math.sqrt(sum);
   }
-   if(this.gettingBaseLine) {
-     if(this.activatedCount == 100) {
-	this.basis = this.activatedSum/this.activatedCount;
-        this.activatedCount = 0;
-        this.gettingBaseLine = false;
-        this.tol = this.basis + 250;
-        this.tol2 = this.basis + 300;
-        console.log("Basis, Tol, Tol2:",this.activatedSum,this.basis,this.tol,this.tol2);
-     } else {
-        this.activatedCount++;
-     }
-   } else {
-      if(this.activatedCount == this.activatedCountTol) {
-    	if(this.activatedSum/this.activatedCountTol > this.tol) {
-	    if(!this.playing) {
-        //this.aSineWave = new SineWave(aContext);
-        //this.aSineWave.setFrequency(this.tone);
-
-  	    this.aSineWave.play();
-        //this.bell.play();
-  	    this.playing = true;
-        this.setFillStyle();
-        this.onFrame = this.frameCount;
-	    }
-    } else if(this.activatedSum/this.activatedCountTol < this.tol2) {
-      if(this.playing) {
-        this.offFrame = this.frameCount;
-        this.playing = false;
-        this.setFillStyle();
-        this.aSineWave.pause();
-      }
+  if(this.gettingBaseLine) {
+    if(this.activatedCount == 100) {
+	    this.basis = this.activatedSum/this.activatedCount;
+      this.activatedCount = 0;
+      this.gettingBaseLine = false;
+      this.tol = this.basis + 250;
+      this.tol2 = this.basis + 300;
+      console.log("Basis, Tol, Tol2:",this.activatedSum,this.basis,this.tol,this.tol2);
+    } else {
+      this.activatedCount++;
     }
+  } else {
+    if(this.activatedCount == this.activatedCountTol) {
+      if(this.activatedSum/this.activatedCountTol > this.tol) {
+	      if (this.instId == BASS_DRUM) {
+          this.bassDrum.trigger();
+          this.playing = true;
+          this.setFillStyle();
+          this.onFrame = this.frameCount;
+        } else if (this.instId == SINE_WAVE) {
+          if(!this.playing) {
+            this.aSineWave = new SineWave(aContext);
+            this.aSineWave.setFrequency(this.tone);
+            this.aSineWave.setAmplitude(this.amplitude);
+            for (var i = 0; i < this.connections.length; i++) {
+              this.aSineWave.getOutNode().connect(this.connections[i]);
+            }
+  	        this.aSineWave.play();
+            //this.bell.play();
+  	        this.playing = true;
+            this.setFillStyle();
+            this.onFrame = this.frameCount;
+	        }
+        }
+      } else if(this.activatedSum/this.activatedCountTol < this.tol2) {
+          if (this.instId == BASS_DRUM) {
+            this.playing = false;
+           this.setFillStyle();
+           this.offFrame = this.frameCount;
+          } else if (this.instId == SINE_WAVE) {
+            if(this.playing) {
+              this.offFrame = this.frameCount;
+              this.playing = false;
+              this.setFillStyle();
+              this.aSineWave.pause();
+            }
+          } 
+        }
       this.activatedSum = 0.0;
       this.activatedCount = 0;
     } else {
@@ -168,7 +197,7 @@ SoundShape.prototype.processDiff = function(diffData) {
   }
 }
 
-SoundShape.prototype.GetEntropy = function(imgData) {
+SoundShape.prototype.GetEntropy = function(imgData, width) {
 
   var skinTonePixel = 0;
   var notSkinTonePixel = 0;
@@ -184,7 +213,7 @@ SoundShape.prototype.GetEntropy = function(imgData) {
   this.numPixels = 0;
   for(var i=yStart; i<yEnd; i++) {
     for(var j=xStart; j<xEnd; j++) {
-      var idx = (j + (i * output.width))*4;
+      var idx = (j + (i * width))*4;
       if (this.isIn(j,i)) {
         var greyScale = 0.299*imgData.data[idx] + 0.587*imgData.data[idx+1] + 0.114*imgData.data[idx+2];
 	GreyScale[Math.round(greyScale)] = GreyScale[Math.round(greyScale)] + 1;
@@ -236,7 +265,7 @@ SoundShape.prototype.GetEntropy = function(imgData) {
   this.frameCount++;
 }
 
-SoundShape.prototype.GetEntropyChange = function(imgData) {
+SoundShape.prototype.GetEntropyChange = function(imgData, width) {
   var yStart = Math.round(this.center.y - this.radius)
   var yEnd  = Math.round(this.center.y + this.radius);
   var xStart = Math.round(this.center.x - this.radius);
@@ -249,7 +278,7 @@ SoundShape.prototype.GetEntropyChange = function(imgData) {
   this.numPixels = 0;
   for(var i=yStart; i<yEnd; i++) {
     for(var j=xStart; j<xEnd; j++) {
-      var idx = (j + (i * output.width))*4;
+      var idx = (j + (i * width))*4;
       if (this.isIn(j,i)) {
         var greyScale = 0.299*imgData.data[idx] + 0.587*imgData.data[idx+1] + 0.114*imgData.data[idx+2];
         GreyScale[Math.round(greyScale)] = GreyScale[Math.round(greyScale)] + 1;

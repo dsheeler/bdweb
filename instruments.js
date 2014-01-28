@@ -1,3 +1,39 @@
+function BassDrum(context) {
+  this.osc = context.createOscillator();
+  this.osc.frequency.value = 45
+  this.osc.type = this.osc.SINE;
+  this.osc.start(0);
+
+  //envelope with 0.001 sec attack and 0.5 sec decay
+  this.envelope = context.createEnvelope(0.0021, 0.02, 0.8,0.01);
+
+  this.waveShaper = context.createWaveShaper();
+  this.numpts = 2048;
+  this.wsCurve = new Float32Array(this.numpts);
+
+  for (var i = 0; i < this.numpts; i++) {
+    this.wsCurve[i] = Math.atan(2*i/this.numpts - 1);
+  }
+
+  this.waveShaper.curve = this.wsCurve;
+
+  this.g = context.createGain();
+  this.g.gain.value = 2;
+  this.osc.connect(this.envelope);
+  this.envelope.connect(this.g);
+
+  this.envelope.connect(this.waveShaper);
+
+}
+
+BassDrum.prototype.trigger = function(){
+  this.envelope.trigger(0.2);
+}
+
+BassDrum.prototype.connect = function(dest){
+  this.waveShaper.connect(dest);
+}
+
 /*
 Sine Wave Generator for Web Audio API.
 Currently works on Chrome.
@@ -17,10 +53,10 @@ SineWave = function(context) {
   this.osc.connect(this.gain);
   this.osc.start(0);
   this.fmosc = this.context.createOscillator();
-  this.fmosc.frequency.value = 4;
+  this.fmosc.frequency.value = 5;
   this.fmosc.start(0);
   this.fmgain = this.context.createGain();
-  this.fmgain.gain.value = this.osc.frequency.value * 0.15;
+  this.fmgain.gain.value = this.osc.frequency.value * 0.015;
   this.fmosc.connect(this.fmgain);
   this.fmgain.connect(this.osc.frequency);
 }
