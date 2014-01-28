@@ -28,10 +28,13 @@ function BassDrum(context) {
 
 BassDrum.prototype.trigger = function(){
   this.envelope.trigger(0.4);
+  var self = this;
+  setTimeout(function() { self.osc.stop(0) }, 1000);
 }
 
 BassDrum.prototype.connect = function(dest){
-  this.waveShaper.connect(dest);
+  this.envelope.connect(dest);
+  //this.waveShaper.connect(dest);
 }
 
 /*

@@ -39,7 +39,7 @@ SoundShape = function(shapes_layer, aContext, center, instId, tone, radius, labe
    this.makeScales();
    this.tone = tone;
    this.bell = new Bell(aContext);
-   this.bassDrum = new BassDrum(aContext);
+   this.bassDrum = null;
    this.connections = [];
    this.kgroup = new Kinetic.Group({
   });
@@ -87,7 +87,6 @@ SoundShape = function(shapes_layer, aContext, center, instId, tone, radius, labe
 
 SoundShape.prototype.connect = function(node) {
   this.connections.push(node);
-  this.bassDrum.connect(node);
 }
 
 SoundShape.prototype.setCenter = function(p) {
@@ -155,6 +154,10 @@ SoundShape.prototype.processDiff = function(diffData, width) {
     if(this.activatedCount == this.activatedCountTol) {
       if(this.activatedSum/this.activatedCountTol > this.tol) {
 	      if (this.instId == BASS_DRUM) {
+          this.bassDrum = new BassDrum(aContext);
+          for (var i = 0; i < this.connections.length; i++) {
+            this.bassDrum.connect(this.connections[i]);
+          }
           this.bassDrum.trigger();
           this.playing = true;
           this.setFillStyle();
