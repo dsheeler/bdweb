@@ -39,6 +39,7 @@ var stage;
 var shapes_layer;
 var video_layer;
 var videoImg;
+var cPressed = false;
 
 var feedbackDelay = 0;
 var compressor = 0;
@@ -52,6 +53,8 @@ var aeolian = [0,2,3,5,7,9,10,12];
 var chromatic = [0,1,2,3,4,5,6,7,8,9,10,11,12];
 
 function init() {
+  $('#kinetic_containter').css('height', height + 'px');
+
   localVideo = document.querySelector('#localVideo');;
   var localStream;
 
@@ -79,10 +82,17 @@ function init() {
 
   shapes_layer = new Kinetic.Layer();
   video_layer = new Kinetic.Layer();
+  var bg = new Kinetic.Rect({
+    x: 0,
+    y: 0,
+    width: stage.getWidth(),
+    height: stage.getHeight(),
+    id: 'bg'
+  });
 
   stage.add(video_layer);
   stage.add(shapes_layer);
-
+  shapes_layer.add(bg);
 
   convolver = aContext.createConvolver();
   var noiseBuffer = aContext.createBuffer(2, 1 * aContext.sampleRate,
@@ -127,6 +137,8 @@ function init() {
   masterBus.connect(meter.getAudioNode());
   numNotes = ionian.length;
   var xDelta = 1/(numNotes + 1);
+
+
   for(var i = 0; i < numNotes; i++) {
     var k = 0;
     var idx = i;
@@ -166,15 +178,60 @@ function init() {
   }
 
   var bassSs = new SoundShape(shapes_layer, aContext,
-      {'x':3*this.width/4, 'y':this.height/2},
-      BASS_DRUM,
+      {'x':this.width/4, 'y':this.height/2},
+      {'instrument': BASS_DRUM, 'frequency': 75, 'att': 0.0001, 'dec': 0.0008, 
+       'sus': 0.99, 'rel': 0.01, 'dur': 0.05},
       0,
       this.width/10,
-      "BassFUFace"
+      "Bass High"
       );
-  bassSs.connect(feedbackDelay);
+  bassSs.connect(compressor);
   soundShapes.push(bassSs);
+
+  var bassSs2 = new SoundShape(shapes_layer, aContext,
+      {'x':3*this.width/4, 'y':this.height/2},
+      {'instrument': BASS_DRUM, 'frequency': 45, 'att': 0.00001, 'dec': 0.00018, 
+       'sus': 0.8, 'rel': 0.09, 'dur': 0.1},
+      0,
+      this.width/10,
+      "Bass Low"
+      );
+  bassSs2.connect(compressor);
+  soundShapes.push(bassSs2);
   console.log("Made soundShapes:",soundShapes.length);
+
+  shapes_layer.on('mousemove', function(e) {
+    if (!connectDragging) return;
+    if (connectDragging.cPressed && mousePressed) {
+      var offsetX = e.offsetX || e.layerX,
+          offsetY = e.offsetY || e.layerY;
+      if (connectDragging.tempLine != null) {
+        connectDragging.tempLine.destroy();
+      }
+      connectDragging.tempLine = new Kinetic.Line({
+        points: [connectDragging.center.x, connectDragging.center.y, 
+         offsetX, offsetY],
+        stroke: '#00b0a0',
+        lineCap: 'round'
+      })
+      connectDragging.tempLine.listening(false);
+      shapes_layer.add(connectDragging.tempLine);
+      shapes_layer.draw();
+    }
+  });
+ 
+  window.onkeypress = function(e) {
+    var unicode = e.charCode ? e.charCode : e.keyCode;
+    var actualkey = String.fromCharCode(unicode);
+    if (actualkey == "c") {
+      cPressed = !cPressed;
+      for (var i = 0; i < soundShapes.length; i++) {
+        soundShapes[i].cPressed = cPressed;
+        connectDragging = null;
+      }
+    }
+  }
+
 
   startMedia();
 
@@ -182,7 +239,7 @@ function init() {
 
 function startMedia() {
   var constraints = {video: {mandatory: {
-    maxWidth:this.width, maxHeight:this.height}}, audio: true};
+    minWidth:this.width, minHeight:this.height}}, audio: true};
   getUserMedia(constraints, handleUserMedia, handleUserMediaError);
   console.log('Getting user media with constraints', constraints);
 }
@@ -197,6 +254,7 @@ function handleUserMedia(stream) {
   var streamAudio = aContext.createMediaStreamSource(stream);
   streamAudio.connect(meter.getAudioNode());
   localStream = stream;
+  //streamAudio.connect(feedbackDelay);
   reqAnimFrame(draw);
 
 }

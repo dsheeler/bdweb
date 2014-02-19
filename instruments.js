@@ -1,40 +1,40 @@
-function BassDrum(context) {
+function BassDrum(context, options) {
+  this.options = options
   this.osc = context.createOscillator();
-  this.osc.frequency.value = 45
-  this.osc.type = this.osc.SINE;
+  this.osc.frequency.value = options.frequency;
+  this.osc.type = this.osc.SINE
   this.osc.start(0);
 
   //envelope with 0.001 sec attack and 0.5 sec decay
-  this.envelope = context.createEnvelope(0.05, 0.08, 0.6,0.09);
+  this.envelope = context.createEnvelope(options.att, options.dec,
+   options.sus, options.rel);
 
-  this.waveShaper = context.createWaveShaper();
-  this.numpts = 2048;
-  this.wsCurve = new Float32Array(this.numpts);
+  this.compressor = context.createDynamicsCompressor();
 
-  for (var i = 0; i < this.numpts; i++) {
-    this.wsCurve[i] = Math.atan(2*i/this.numpts - 1);
-  }
-
-  this.waveShaper.curve = this.wsCurve;
+  this.freq = context.createGain();
+  var now = context.currentTime;
+  var freq = this.freq;
+  freq.connect(this.osc.frequency);
+  freq.gain.cancelScheduledValues(now);
+  freq.gain.setValueAtTime(options.frequency*2, now);
+  freq.gain.linearRampToValueAtTime(options.frequency, now + options.att);
 
   this.g = context.createGain();
-  this.g.gain.value = 0.7;
+  this.g.gain.value = 1;
   this.osc.connect(this.g);
   this.g.connect(this.envelope);
-
-  this.envelope.connect(this.waveShaper);
-
+  this.envelope.connect(compressor);
 }
 
 BassDrum.prototype.trigger = function(){
-  this.envelope.trigger(0.4);
+  this.envelope.trigger(this.options.dur);
   var self = this;
   setTimeout(function() { self.osc.stop(0) }, 1000);
 }
 
 BassDrum.prototype.connect = function(dest){
-  this.envelope.connect(dest);
-  //this.waveShaper.connect(dest);
+  //this.envelope.connect(dest);
+  this.compressor.connect(dest);
 }
 
 /*

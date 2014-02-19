@@ -2,12 +2,12 @@ var BASS_DRUM = 1;
 var SINE_WAVE = 2;
 var BELL = 3;
 
-
-
+var connectDragging = null;
+var mousePressed = false;
 
 //sound shape takes a canvas drawling context and an audio context and x y point
-SoundShape = function(shapes_layer, aContext, center, instId, tone, radius, label) {
-  this.instId = instId;
+SoundShape = function(shapes_layer, aContext, center, instrumentOptions, tone, radius, label) {
+  this.instrumentOptions = instrumentOptions;
   this.label = label;
    this.center = center;
    this.radius = radius;
@@ -43,7 +43,13 @@ SoundShape = function(shapes_layer, aContext, center, instId, tone, radius, labe
    this.connections = [];
    this.kgroup = new Kinetic.Group({
   });
-
+   this.soundShapesToTrigger = [];
+  this.foreignTriggers = [];
+  this.lines = [];
+  this.triggersActive = false;
+  this.cPressed = false;
+  this.timeouts = [];
+  this.tempLine = null;
 
   this.kshape = new Kinetic.Circle({
     x: this.center.x,
@@ -76,13 +82,226 @@ SoundShape = function(shapes_layer, aContext, center, instId, tone, radius, labe
 
   var me = this;
 
-  this.kgroup.on('dragmove', function() {
-    me.center.x = this.x() + me.kshape.x();
-    me.center.y = this.y() + me.kshape.y();
+  this.kgroup.on('dblclick', function() {
+    me.cancelTriggers();
+    me.pause(me.player);
+  });
+
+  this.kgroup.on('mousedown', function() {
+    mousePressed = true;
+    if (me.cPressed) {
+      connectDragging = me;
+      this.setDraggable(false);
+    } else {
+      this.setDraggable(true);
+    }
+  });
+
+  this.kgroup.on('mouseup', function() {
+    mousePressed = false;
+    if (me.cPressed) {
+      if (connectDragging != null) {
+        connectDragging.kgroup.setDraggable(true);
+        if (connectDragging.hasSoundShapeToTrigger(me) > -1) {
+          connectDragging.removeSoundShapeToTrigger(me);
+        } else {
+          connectDragging.addSoundShapeToTrigger(me, 0.2);
+        }
+        if (connectDragging.tempLine) {
+          connectDragging.tempLine.destroy();
+          me.shapes_layer.draw();
+        }
+        connectDragging = null;
+      }
+    }
+
+      /*this.dragBoundFunc(function() {
+        return { 
+          x: this.getAbsolutePosition().x,
+          y: this.getAbsolutePosition().y
+        }
+      });
+    } else {
+      this.dragBoundFunc(
+        function() {
+        return {
+          x: this.pos.x,
+          y: this.pos.y
+        }
+      });*/
+    }
+  );
+
+  this.kgroup.on('dragmove', function(e) {
+    if (!me.cPressed) {
+      me.center.x = this.x() + me.kshape.x();
+      me.center.y = this.y() + me.kshape.y();
+      var newlines = [];
+      for (var i = 0; i < me.foreignTriggers.length; i++) {
+        me.foreignTriggers[i].reDrawLine(me);
+      }
+      while (me.lines.length) {
+        var oldline = me.lines.pop();
+        oldline.kline.destroy();
+      }
+      for (var i = 0; i < me.soundShapesToTrigger.length; i++) {
+        var ss = me.soundShapesToTrigger[i].ss;
+        var line = { from: me, to: ss, kline: new Kinetic.Line({
+          points: [me.center.x, me.center.y, ss.center.x, ss.center.y],
+          stroke: '#00b0a0',
+          lineCap: 'round'
+        })};
+        me.shapes_layer.add(line.kline);
+        newlines.push(line);
+      }
+      me.lines = newlines;
+    }
   });
 
   this.shapes_layer.add(this.kgroup);
 
+}
+
+SoundShape.prototype.cancelTriggers = function() {
+  if (this.triggersActive) {
+    this.triggersActive = false;
+    for (var i = 0; i < this.soundShapesToTrigger.length; i++) {
+      this.soundShapesToTrigger[i].ss.cancelTriggers();
+      this.soundShapesToTrigger[i].ss.pause(this);
+      while (this.soundShapesToTrigger[i].ss.timeouts.length) {
+        var timeout = this.soundShapesToTrigger[i].ss.timeouts.pop();
+        clearTimeout(timeout);
+      }
+    }
+  }
+}
+
+SoundShape.prototype.reDrawLine = function(to) {
+  for (var i = 0; i < this.lines.length; i++) {
+    if (this.lines[i].to == to) {
+      var oldkline = this.lines[i].kline;
+      oldkline.destroy();
+      this.lines.splice(i, 1);
+      var kline = new Kinetic.Line({
+        points: [this.center.x, this.center.y, to.center.x, to.center.y],
+        stroke: '#00b0a0',
+        lineCap: 'round'
+      });
+      var newline = { from: this, to: to, kline: kline };
+      this.lines.push(newline);
+      this.shapes_layer.add(newline.kline);
+    }
+  }
+}
+
+SoundShape.prototype.play = function(caller) {
+  if(!this.playing) {
+    this.player = caller;
+    this.playing = true;
+    if (this.instrumentOptions.instrument == BASS_DRUM) {
+      this.bassDrum = new BassDrum(aContext, this.instrumentOptions);
+      for (var i = 0; i < this.connections.length; i++) {
+        this.bassDrum.connect(this.connections[i]);
+      }
+      this.bassDrum.trigger();
+      this.setFillStyle();
+      this.onFrame = this.frameCount;
+    } else {
+      this.aSineWave = new SineWave(aContext);
+      this.aSineWave.setFrequency(this.tone);
+      this.aSineWave.setAmplitude(this.amplitude);
+      for (var i = 0; i < this.connections.length; i++) {
+        this.aSineWave.getOutNode().connect(this.connections[i]);
+      }
+      this.aSineWave.play();
+      //this.bell.play();
+      this.setFillStyle();
+      this.onFrame = this.frameCount;
+    }
+    var self = this;
+    this.triggersActive = true;
+    for (var i = 0; i < this.soundShapesToTrigger.length; i++) {
+      var ss = this.soundShapesToTrigger[i].ss;
+      var dt = this.soundShapesToTrigger[i].delaySeconds;
+      var dx = this.center.x - ss.center.x;
+      var dx2 = dx * dx;
+      var dy = this.center.y - ss.center.y;
+      var dy2 = dy * dy; 
+      var dist = Math.sqrt(dx2 + dy2);
+      this.factor = dist/this.radius;
+      this.timeouts.push(setTimeout(function(soundshape) {
+       soundshape.play(self); 
+      }, this.factor * dt * 1000, ss));
+    }
+  }
+}
+
+SoundShape.prototype.pause = function(caller) {
+  if(this.playing) {
+    if (this.player == caller) {
+
+    this.playing = false;
+    if (this.instrumentOptions.instrument == BASS_DRUM) {
+      this.setFillStyle();
+      this.offFrame = this.frameCount;
+    } else {
+      this.offFrame = this.frameCount;
+      this.setFillStyle();
+      this.aSineWave.pause();
+    }
+    var self = this;
+    for (var i = 0; i < this.soundShapesToTrigger.length; i++) {
+      var ss = this.soundShapesToTrigger[i].ss;
+      var dt = this.soundShapesToTrigger[i].delaySeconds;
+      var dx = this.center.x - ss.center.x;
+      var dx2 = dx * dx;
+      var dy = this.center.y - ss.center.y;
+      var dy2 = dy * dy; 
+      var dist = Math.sqrt(dx2 + dy2);
+      this.factor = dist/this.radius;
+      this.timeouts.push(setTimeout(function(soundshape) {
+        soundshape.pause(self);
+      }, this.factor * dt * 1000, ss));
+    }
+  }
+  }
+}
+
+SoundShape.prototype.addForeignTrigger = function(ss) {
+  this.foreignTriggers.push(ss);
+}
+
+SoundShape.prototype.addSoundShapeToTrigger = function(ss, delaySeconds) {
+  var line = { from: this, to: ss, kline: new Kinetic.Line({
+    points: [this.center.x, this.center.y, ss.center.x, ss.center.y],
+    stroke: '#00b0a0',
+    lineCap: 'round'
+  })};
+  this.lines.push(line);
+  this.shapes_layer.add(line.kline);
+  this.shapes_layer.draw();
+  this.soundShapesToTrigger.push({'ss':ss, 'delaySeconds':delaySeconds});
+  ss.addForeignTrigger(this);
+}
+
+SoundShape.prototype.hasSoundShapeToTrigger = function(ss) {
+  for (var i = 0; i < this.soundShapesToTrigger.length; i++) {
+    if (this.soundShapesToTrigger[i].ss == ss) {
+      break;
+    }
+  }
+  if (i < this.soundShapesToTrigger.length) {
+    return i;
+  } else {
+    return -1;
+  }
+}
+
+SoundShape.prototype.removeSoundShapeToTrigger = function(ss) {
+  var index = this.hasSoundShapeToTrigger(ss);
+  if (index > -1) {
+    this.soundShapesToTrigger.splice(index,1);
+  }
 }
 
 SoundShape.prototype.connect = function(node) {
@@ -121,80 +340,48 @@ SoundShape.prototype.setFillStyle = function() {
 
 SoundShape.prototype.processDiff = function(diffData, width) {
   this.frameCount++;
-  var sum = 0;
-  var yStart = Math.round(this.center.y - this.radius) 
-  var yEnd  = Math.round(this.center.y + this.radius);
-  var xStart = Math.round(this.center.x - this.radius);
-  var xEnd  = Math.round(this.center.x + this.radius);
-  for(var i=yStart; i<yEnd; i++) {
-    for(var j=xStart; j<xEnd; j++) {
-      var idx = (j + (i * width))*4;
-      if (this.isIn(j,i)) {
-        sum += diffData.data[idx]*diffData.data[idx];
+  if (!this.triggersActivated) {
+    var sum = 0;
+    var yStart = Math.round(this.center.y - this.radius) 
+    var yEnd  = Math.round(this.center.y + this.radius);
+    var xStart = Math.round(this.center.x - this.radius);
+    var xEnd  = Math.round(this.center.x + this.radius);
+    for(var i=yStart; i<yEnd; i++) {
+      for(var j=xStart; j<xEnd; j++) {
+        var idx = (j + (i * width))*4;
+        if (this.isIn(j,i)) {
+          sum += diffData.data[idx]*diffData.data[idx];
+        }
       }
     }
-  }
-  if(sum == 0 || isNaN(sum)) {
-    return;
-  } else {
-    this.activatedSum = this.activatedSum + Math.sqrt(sum);
-  }
-  if(this.gettingBaseLine) {
-    if(this.activatedCount == 100) {
-	    this.basis = this.activatedSum/this.activatedCount;
-      this.activatedCount = 0;
-      this.gettingBaseLine = false;
-      this.tol = this.basis + 250;
-      this.tol2 = this.basis + 300;
-      console.log("Basis, Tol, Tol2:",this.activatedSum,this.basis,this.tol,this.tol2);
-    } else {
-      this.activatedCount++;
+    if(sum == 0 || isNaN(sum)) {
+      return;
     }
-  } else {
-    if(this.activatedCount == this.activatedCountTol) {
-      if(this.activatedSum/this.activatedCountTol > this.tol) {
-	      if (this.instId == BASS_DRUM) {
-          this.bassDrum = new BassDrum(aContext);
-          for (var i = 0; i < this.connections.length; i++) {
-            this.bassDrum.connect(this.connections[i]);
-          }
-          this.bassDrum.trigger();
-          this.playing = true;
-          this.setFillStyle();
-          this.onFrame = this.frameCount;
-        } else if (this.instId == SINE_WAVE) {
-          if(!this.playing) {
-            this.aSineWave = new SineWave(aContext);
-            this.aSineWave.setFrequency(this.tone);
-            this.aSineWave.setAmplitude(this.amplitude);
-            for (var i = 0; i < this.connections.length; i++) {
-              this.aSineWave.getOutNode().connect(this.connections[i]);
-            }
-  	        this.aSineWave.play();
-            //this.bell.play();
-  	        this.playing = true;
-            this.setFillStyle();
-            this.onFrame = this.frameCount;
-	        }
-        }
-      } else if(this.activatedSum/this.activatedCountTol < this.tol2) {
-          if (this.instId == BASS_DRUM) {
-            this.playing = false;
-           this.setFillStyle();
-           this.offFrame = this.frameCount;
-          } else if (this.instId == SINE_WAVE) {
-            if(this.playing) {
-              this.offFrame = this.frameCount;
-              this.playing = false;
-              this.setFillStyle();
-              this.aSineWave.pause();
-            }
-          } 
-        }
-      this.activatedSum = 0.0;
-      this.activatedCount = 0;
+    this.activatedSum = this.activatedSum + Math.sqrt(sum);
+
+    if(this.gettingBaseLine) {
+      if(this.activatedCount == 100) {
+	      this.basis = this.activatedSum/this.activatedCount;
+        this.activatedCount = 0;
+        this.gettingBaseLine = false;
+        this.tol = this.basis * 1.5;
+        this.tol2 = this.basis * 1.55;
+        console.log("Basis, Tol, Tol2:",this.activatedSum,this.basis,this.tol,this.tol2);
+      } else {
+        this.activatedCount++;
+      }
     } else {
-      this.activatedCount++;
+      if(this.activatedCount == this.activatedCountTol) {
+        if(this.activatedSum/this.activatedCountTol > this.tol) {
+          this.play(this);
+        } else if(this.activatedSum/this.activatedCountTol < this.tol2) {
+          this.pause(this);
+        }
+        this.activatedSum = 0.0;
+        this.activatedCount = 0;
+      } else {
+        this.activatedCount++;
+      }
     }
   }
 }
