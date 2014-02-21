@@ -65,13 +65,16 @@ function init() {
   $('#masterBus').slider({
     range: 'min',
     min: 0,
-    max: 100, 
+    max: 100,
     value: 75,
     slide: function(event, ui) {
       masterBus.gain.value = ui.value/100;
+      $('#master_volume_gain').html(masterBus.gain.value.toPrecision(3));
     }
   });
   masterBus.gain.value = $('#masterBus').slider('value')/100;
+  $('#master_volume_gain').html(masterBus.gain.value.toPrecision(3));
+
   stage = new Kinetic.Stage({
     container: 'kinetic_container',
     width: this.width,
@@ -108,24 +111,28 @@ function init() {
   $('#delay').slider({
     range: 'min',
     min: 0,
-    max: 100, 
+    max: 100,
     value: 40,
     slide: function(event, ui) {
       feedbackDelay.delayTime.value = ui.value/100;
+      $('#delay_time').html(feedbackDelay.delayTime.value.toPrecision(3));
     }
   });
   feedbackDelay.delayTime.value = $('#delay').slider('value')/100;
+  $('#delay_time').html(feedbackDelay.delayTime.value.toPrecision(3));
 
   $('#feedback').slider({
     range: 'min',
     min: 0,
-    max: 100, 
+    max: 100,
     value: 50,
     slide: function(event, ui) {
       feedbackDelay.gainNode.gain.value = ui.value/100;
+      $('#delay_gain').html(feedbackDelay.gainNode.gain.value.toPrecision(3));
     }
   });
   feedbackDelay.gainNode.gain.value = $('#feedback').slider('value')/100;
+  $('#delay_gain').html(feedbackDelay.gainNode.gain.value.toPrecision(3));
 
   feedbackDelay.connect(compressor);
   convolver.connect(compressor);
@@ -139,7 +146,7 @@ function init() {
   for(var i = 0; i < numNotes; i++) {
     var k = 0;
     var idx = i;
-    var freq = 440 * Math.pow(1.05946,ionian[i]); 
+    var freq = 440 * Math.pow(1.05946,ionian[i]);
 
     var ss = new SoundShape(shapes_layer, aContext,
      {'x':xDelta*(i+1)*this.width, 'y':this.height/4},
@@ -160,7 +167,7 @@ function init() {
   for(var i = 0; i < numNotes; i++) {
     var k = 0;
     var idx = i;
-    var freq = 220 * Math.pow(1.05946,aeolian[i]); 
+    var freq = 220 * Math.pow(1.05946,aeolian[i]);
 
     var ss = new SoundShape(shapes_layer, aContext,
      {'x':xDelta*(i+1)*this.width, 'y':this.height/2.5},
@@ -176,7 +183,7 @@ function init() {
 
   var bassSs = new SoundShape(shapes_layer, aContext,
       {'x':this.width/4, 'y':this.height/2},
-      {'instrument': BASS_DRUM, 'frequency': 75, 'att': 0.0001, 'dec': 0.0008, 
+      {'instrument': BASS_DRUM, 'frequency': 75, 'att': 0.0001, 'dec': 0.0008,
        'sus': 0.99, 'rel': 0.01, 'dur': 0.05},
       0,
       this.width/10,
@@ -187,7 +194,7 @@ function init() {
 
   var bassSs2 = new SoundShape(shapes_layer, aContext,
       {'x':3*this.width/4, 'y':this.height/2},
-      {'instrument': BASS_DRUM, 'frequency': 45, 'att': 0.00001, 'dec': 0.00018, 
+      {'instrument': BASS_DRUM, 'frequency': 45, 'att': 0.00001, 'dec': 0.00018,
        'sus': 0.8, 'rel': 0.09, 'dur': 0.1},
       0,
       this.width/10,
@@ -206,7 +213,7 @@ function init() {
         connectDragging.tempLine.destroy();
       }
       connectDragging.tempLine = new Kinetic.Line({
-        points: [connectDragging.center.x, connectDragging.center.y, 
+        points: [connectDragging.center.x, connectDragging.center.y,
          offsetX, offsetY],
         stroke: '#00b0a0',
         lineCap: 'round'
@@ -216,7 +223,7 @@ function init() {
       shapes_layer.draw();
     }
   });
- 
+
   window.onkeypress = function(e) {
     var unicode = e.charCode ? e.charCode : e.keyCode;
     var actualkey = String.fromCharCode(unicode);
@@ -420,14 +427,15 @@ function handleUserMediaError(error){
     <div class='controls'>
       <div class='control'>
         <div class='control_label'>Master Volume </div>
-        <div class='control_sub_label'>Gain</div>
+        <div class='control_sub_label'>Gain: <span
+         id='master_volume_gain'></span></div>
         <div id="masterBus" class='slider'></div>
       </div>
       <div class='control'>
         <div class='control_label'>Delay</div>
-        <div class='control_sub_label'>Time</div>
+        <div class='control_sub_label'>Time: <span id='delay_time'></span></div>
         <div id="delay" class='slider'></div>
-        <div class='control_sub_label'>Feedback</div>
+        <div class='control_sub_label'>Feedback: <span id='delay_gain'></span></div>
         <div id="feedback" class='slider'></div>
       </div>
     </div>
