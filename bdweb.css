@@ -1,8 +1,46 @@
-#kinetic_container, #peak, .slider {
+#kinetic_container, #peak, .control {
   box-shadow: 0 0 15px 3px;
+  border-radius: 10px;
+}
+
+.slider {
+  margin-bottom: 15px;
+  margin-left: 15px;
+  margin-right: 15px;
+}
+
+.control {
+  padding-bottom: 10px;
+  padding-top: 10px;
+  margin-bottom: 15px;
+}
+
+.kineticjs-content, canvas {
+  border-radius: inherit;
+  width: inherit;
+  height: inherit;
+}
+
+#kinetic_container, #peak, .controls  {
+  float:left;
   margin-left: 15px;
   margin-top: 15px;
-  float: left;
+}
+
+.control_label, .control_sub_label {
+  color: #CCC;
+  text-shadow: 2px 2px 5px black;
+}
+
+.control_label {
+  font-size: 2em;
+  margin-left: 5px;
+}
+
+.control_sub_label {
+  margin-left: 15px;
+  font-size: 1em;
+  margin-bottom: 5px;
 }
 
 .video {
@@ -10,7 +48,7 @@
 }
 
 body {
-  background-color: #333
+  background-color: #333;
 }
 
 

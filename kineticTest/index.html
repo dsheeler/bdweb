@@ -63,7 +63,6 @@ function init() {
   meter = new PeakMeter('peak', aContext);
   masterBus = aContext.createGain();
   $('#masterBus').slider({
-    orientation: 'vertical',
     range: 'min',
     min: 0,
     max: 100, 
@@ -107,7 +106,6 @@ function init() {
   compressor = aContext.createDynamicsCompressor();
   feedbackDelay = aContext.createFeedbackDelay(0.2, 0.5);
   $('#delay').slider({
-    orientation: 'vertical',
     range: 'min',
     min: 0,
     max: 100, 
@@ -119,7 +117,6 @@ function init() {
   feedbackDelay.delayTime.value = $('#delay').slider('value')/100;
 
   $('#feedback').slider({
-    orientation: 'vertical',
     range: 'min',
     min: 0,
     max: 100, 
@@ -232,6 +229,8 @@ function init() {
     }
   }
 
+  $('.controls').css('width', this.width + 'px');
+  $('#kinetic_container').css('height', this.height + 'px');
 
   startMedia();
 
@@ -418,9 +417,20 @@ function handleUserMediaError(error){
   <div id='container'>
     <div style='float:left' id='kinetic_container'></div>
     <canvas id='peak'></canvas>
-    <div id="masterBus" class='slider'></div>
-    <div id="delay" class='slider'></div>
-    <div id="feedback" class='slider'></div>
+    <div class='controls'>
+      <div class='control'>
+        <div class='control_label'>Master Volume </div>
+        <div class='control_sub_label'>Gain</div>
+        <div id="masterBus" class='slider'></div>
+      </div>
+      <div class='control'>
+        <div class='control_label'>Delay</div>
+        <div class='control_sub_label'>Time</div>
+        <div id="delay" class='slider'></div>
+        <div class='control_sub_label'>Feedback</div>
+        <div id="feedback" class='slider'></div>
+      </div>
+    </div>
     <div id='videos'>
       <video id='localVideo' muted  autoplay style='visibility:hidden'></video>
     </div>
