@@ -164,23 +164,30 @@ function Rtc(info_object) {
     <audio id='login_audio'>\
       <source src='http://six600110.com/login.wav' type='audio/wav' />\
     </audio>\
-    <div style='float:left'>\
-      <div class='button_wrap_streams'>\
+    <div style='margin:20px;float:left'>\
+      <h2>Get started by enabling an audio/video stream.</h2>\
+      <h3>You can enable more than one stream at a time.<h3>\
+      <div class='button_wrap'>\
         <div class='krad_button' id='start_media'>ADD STREAM</div>\
       </div>\
+      </div>\
+      <div style='margin:20px' id='localVideoContainer'></div>\
+        <ul id='local_streams'></ul>\
+      </div>\
+    <div>\
+      <h2>Make yourself available for calls by registering a username below.</h2>\
+      <h3>When you register a name, you can call and be called by other users.</h3>\
       <div><input id='webrtc_name' type='text'></input></div>\
-      <div>\
-        <div class='button_wrap'>\
-          <div class='krad_button' id='register'>REGISTER</div>\
-        </div>\
-        <div class='button_wrap'>\
-         <div class='krad_button' id='unregister'>UNREGISTER</div>\
-        </div>\
+      <div class='button_wrap'>\
+        <div class='krad_button' id='register'>REGISTER</div>\
       </div>\
-      <ul style='float:left' id='user_list'></ul>\
+      <div class='button_wrap'>\
+       <div class='krad_button' id='unregister'>UNREGISTER</div>\
       </div>\
-        <div style='margin:20px;float:left' id='localVideoContainer'></div>\
-    <ul id='local_streams'></ul>\
+    </div>\
+    <div>\
+      <ul id='user_list'></ul>\
+    </div>\
   </div>\
   <div style='margin:20px;float:left' id='remoteVideoContainer'></div>\
   <div id='dialog'></div>\
