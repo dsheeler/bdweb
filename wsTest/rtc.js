@@ -1,5 +1,5 @@
 $(document).ready(function() {
-  rack_units.push({'constructor': Rtc, 'aspect': [32,20], 'page': 0});
+rack_units.push({'constructor': Rtc, 'aspect': [32,20], 'page': 0});
 });
 
 function LocalStream(name, streamId, stream, containerDiv, divName, canvasId) {
@@ -21,8 +21,8 @@ function LocalStream(name, streamId, stream, containerDiv, divName, canvasId) {
   var local_stream_div = $('#' + this.divName);
   var local_stream_id = "local_stream_" + this.streamId;
   local_stream_div.append('<p id="' + local_stream_id + '" '
-     + 'class="local_stream_label">' + this.name
-     + '</p><canvas class="local_stream_spectrum_canvas" id="'
+   + 'class="local_stream_label">' + this.name
+   + '</p><canvas class="local_stream_spectrum_canvas" id="'
    + canvasId + '"></canvas>');
 
   var vidName = this.divName + '_video';
@@ -57,6 +57,7 @@ function LocalStream(name, streamId, stream, containerDiv, divName, canvasId) {
    + 'REMOVE ' + this.name + '</div></div>');
 
   $('#' + this.removeButtonId).bind('click', {'stream':this}, function(e) {
+    $('#' + stream_plus_hangup_div_id).remove();
     $('#' + e.data.stream.divName).remove();
     $('#' + e.data.stream.removeButtonId).remove();
     for (var i = 0; i < kr.rtc.peers.length; i++) {
@@ -64,6 +65,9 @@ function LocalStream(name, streamId, stream, containerDiv, divName, canvasId) {
        + e.data.stream.streamId;
       $('#' + callId).remove();
     }
+    e.data.stream.videoDiv.pause();
+    e.data.stream.videoDiv.src = "";
+    e.data.stream.stream.stop();
     var idx = kr.rtc.localStreams.indexOf(e.data.stream);
     kr.rtc.localStreams.splice(idx,1);
   });
@@ -164,19 +168,18 @@ function Rtc(info_object) {
     <audio id='login_audio'>\
       <source src='http://six600110.com/login.wav' type='audio/wav' />\
     </audio>\
-    <div style='margin:20px;float:left'>\
-      <h2>Get started by enabling an audio/video stream.</h2>\
-      <h3>You can enable more than one stream at a time.<h3>\
-      <div class='button_wrap'>\
-        <div class='krad_button' id='start_media'>ADD STREAM</div>\
+    <h1 class='page_title'>WebRTC Chat</h1>\
+    <span>\
+      <div>\
+        <h1>Enable audio/video</h1>\
+        <div class='button_wrap'>\
+          <div class='krad_button' id='start_media'>ADD STREAM</div>\
+        </div>\
       </div>\
-      </div>\
-      <div style='margin:20px' id='localVideoContainer'></div>\
-        <ul id='local_streams'></ul>\
-      </div>\
-    <div>\
-      <h2>Make yourself available for calls by registering a username below.</h2>\
-      <h3>When you register a name, you can call and be called by other users.</h3>\
+      <div id='localVideoContainer'></div>\
+    </span>\
+    <span>\
+      <h1><span id = 'registration_status'>Sign In</span></h1>\
       <div><input id='webrtc_name' type='text'></input></div>\
       <div class='button_wrap'>\
         <div class='krad_button' id='register'>REGISTER</div>\
@@ -184,10 +187,9 @@ function Rtc(info_object) {
       <div class='button_wrap'>\
        <div class='krad_button' id='unregister'>UNREGISTER</div>\
       </div>\
-    </div>\
-    <div>\
+      <h1>Current Users</h1>\
       <ul id='user_list'></ul>\
-    </div>\
+    </span>\
   </div>\
   <div style='margin:20px;float:left' id='remoteVideoContainer'></div>\
   <div id='dialog'></div>\
@@ -195,7 +197,6 @@ function Rtc(info_object) {
 
   this.localVideosContainer = $('#localVideoContainer');
   this.remoteVideosContainer = $('#remoteVideoContainer');
-
   $('#register').bind('click', function(e) {
     kr.rtc.register($('#webrtc_name').val());
   });
@@ -271,9 +272,10 @@ Rtc.prototype.unregister = function() {
 
 Rtc.prototype.userRegistered = function(name) {
   var audio_name = 'audio';
-  $('#user_list').append('<li id="' + name + '">' + name
-  + '</li>');
-
+  if (this.name != name) {
+    $('#user_list').append('<li id="' + name + '">' + name
+     + '</li>');
+  }
   for (var i = 0; i < kr.rtc.localStreams.length; i++) {
     var button_id = "call_" + name + "_with_"
      + this.localStreams[i].streamId;
@@ -301,7 +303,7 @@ Rtc.prototype.userRegistered = function(name) {
   }
 
   if (name == this.name) {
-    $('#' + name).html(this.name + " (you)");
+    $('#registration_status').html('Welcome, ' + name);
   } else {
     $('#' + name).droppable( {
       drop: function(event, ui) {
@@ -325,7 +327,9 @@ Rtc.prototype.userUnregistered = function(name) {
   $('.call_button').remove();
   var audio = document.getElementById('logout_audio');
   audio.play();
-
+  if (this.name == name) {
+    $('#registration_status').html('Sign In');
+  }
   for (var j = 0; j < this.peers.length; j++) {
     if ((this.name == name) || (this.peers[j].name == name)) {
       this.peers[j].destroy();
@@ -335,6 +339,7 @@ Rtc.prototype.userUnregistered = function(name) {
 }
 
 Rtc.prototype.callPeer = function(name, stream) {
+  alert("Calling " + name);
   for (var i = 0; i < this.peers.length; i++) {
     if (this.peers[i].name == name) {
       if (typeof(stream) != 'undefined') {

@@ -3,6 +3,7 @@
 <head>
   <link rel="stylesheet"
    href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+  <script type="text/javascript" src="../peakmeter.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
   <script src="//code.jquery.com/ui/1.10.3/jquery-ui.min.js"></script>
   <script src="//code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
@@ -34,7 +35,11 @@ h1, h2, h3, h4, h5, h6 {
   cursor: default;
   margin-left: 0.625em;
   margin-right: 0.625em;
-  font-weight: normal;
+}
+
+.page_title {
+  font-size: 5em;
+  text-align: center;
 }
 
 .clock {
@@ -125,6 +130,11 @@ h1, h2, h3, h4, h5, h6 {
   height: 100%;
   position: absolute;
   pointer-events:none;
+}
+
+#localVideoContainer {
+  display: inline-block;
+  margin: 20px;
 }
 
 .local_video {
@@ -499,12 +509,12 @@ li.alt.selected, li.selected{
 
 .button_wrap {
   height: 3.125em;
-  float: left;
+  display: inline-block;
 }
 
 li .button_wrap {
   height: 2.1875em;
-  float: left;
+  display: inline-block;
 }
 
   </style>
