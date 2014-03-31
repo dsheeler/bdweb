@@ -199,7 +199,7 @@ SoundShape.prototype.play = function(caller) {
     this.player = caller;
     this.playing = true;
     if (this.instrumentOptions.instrument == BASS_DRUM) {
-      this.bassDrum = new BassDrum(aContext, this.instrumentOptions);
+      this.bassDrum = new BassDrum(this.audioContext, this.instrumentOptions);
       for (var i = 0; i < this.connections.length; i++) {
         this.bassDrum.connect(this.connections[i]);
       }
@@ -207,7 +207,7 @@ SoundShape.prototype.play = function(caller) {
       this.setFillStyle();
       this.onFrame = this.frameCount;
     } else {
-      this.aSineWave = new SineWave(aContext);
+      this.aSineWave = new SineWave(this.audioContext);
       this.aSineWave.setFrequency(this.tone);
       this.aSineWave.setAmplitude(this.amplitude);
       for (var i = 0; i < this.connections.length; i++) {

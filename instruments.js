@@ -23,7 +23,7 @@ function BassDrum(context, options) {
   this.g.gain.value = 1;
   this.osc.connect(this.g);
   this.g.connect(this.envelope);
-  this.envelope.connect(compressor);
+  this.envelope.connect(this.compressor);
 }
 
 BassDrum.prototype.trigger = function(){
