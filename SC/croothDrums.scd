@@ -1,6 +1,6 @@
-
+s = Server("aServer", NetAddr("192.168.1.66",57110));
 ServerOptions.devices;
-s.options.device_("JackRouter");
+
 s.options.sampleRate = 48000;
 s.boot;
 (
@@ -420,13 +420,96 @@ t.play();
 )
 
 (
+var tc,tc2,fastBeatCount;
 var freq,amp,dur,freqs1,freqs2;
+freqs1 = List[60,62,64,65,67,69,71,72].midicps;
+freqs2 = List[60,64,67,72].midicps;
+fastBeatCount = 0;
+tc = TempoClock.new(7,3);
+
+tc.schedAbs(tc.beats.ceil, { arg beat, sec;
+	if(beat % (2.rand() + 2) == 0, {
+		if(50.rand() > 25.0, {
+			s.sendMsg("\s_new", "bassDrum", a = s.nextNodeID, 1, 1, "amp", 0.86);
+			}, {
+			s.sendMsg("\s_new", "kick", b = s.nextNodeID, 1, 1, "amp", 0.86);
+		});
+	});
+	if(beat % 7 == 0, {
+		s.sendMsg("\s_new", "hat", c = s.nextNodeID, 1, 1, "amp", 0.9);
+	});
+	if(beat % 6 == 0, {
+		freq = freqs2.at(freqs2.size.rand()); // - freqs2.at(freqs2.size.rand());
+		if(50.rand() > 25.0, {
+			s.sendMsg("\s_new", "snare", d = s.nextNodeID, 1, 1, "amp", 0.86);
+			}, {
+			s.sendMsg("\s_new", "snare", e = s.nextNodeID, 1, 1, "amp", 0.66, "dur", 3.rand(), "freq", (freq*pow(2,(7/12))));
+		});
+	});
+	if(beat % (50.rand()+50) == 0, {
+		fastBeatCount = beat;
+		beat.postln;
+	});
+	if(fastBeatCount != 0, {
+		if(beat < (fastBeatCount+(25.rand()+25)), {
+			if(beat % 1 == 0, {
+				freq = freqs2.at(freqs2.size.rand()); // - freqs2.at(freqs2.size.rand());
+				if(50.rand() > 25.0, {
+					s.sendMsg("\s_new", "simpleSynth", f = s.nextNodeID, 1, 1, "out", ~dryout, "freq", (freq*pow(2,(17/12))),"pan", 0.0,"dur",rrand(0.2,0.25),"amp",10.0);
+					}, {
+					s.sendMsg("\s_new", "simpleSynth", g = s.nextNodeID, 1, 1, "out", ~dryout, "freq", (freq*pow(2,(-19/12))),"pan", 0.0,"dur",rrand(0.2,0.25),"amp",10.0);
+				});
+			});
+			}, {
+				fastBeatCount = 0;
+		});
+	});
+	if(beat % 30 == 0, {
+		freq = freqs1.at(freqs1.size.rand()); // - freqs2.at(freqs2.size.rand());
+		 s.sendMsg("\s_new", "simpleSynth", h = s.nextNodeID, 1, 1, "out", ~dryout, "freq", freq,"pan", -1.0,"dur",5.rand()+5,"amp",10.0);
+	});
+	if(beat % 32 == 0, {
+		freq = freqs1.at(freqs1.size.rand()); // - freqs2.at(freqs2.size.rand());
+		 s.sendMsg("\s_new", "simpleSynth", i = s.nextNodeID, 1, 1, "out", ~dryout, "freq", freq,"pan", 1.0,"dur",5.rand()+5,"amp",10.0);
+	});
+	//if(beat % (4.rand() + 4) == 0, {
+	//	s.sendMsg("\s_new", "openhat", d = s.nextNodeID, 1, 1);
+	//});
+	//if(beat % (7.rand() + 1) == 0, {
+	//	s.sendMsg("\s_new", "ws_drum", e = s.nextNodeID, 1, 1, "freq", 80.0, "amp", 0.9);
+		//s.sendMsg("\s_new", "ws_drum", f = s.nextNodeID, 1, 1, "freq", 120.0, "amp", 0.9);
+
+	//});
+
+	1;
+});
+/*tc2 = TempoClock.new(7,4);
+tc2.schedAbs(tc2.beats.ceil, { arg beat, sec;
+	//if(beat % 4.rand() == 0, {
+		//s.sendMsg("\s_new", "kick", a = s.nextNodeID, 1, 1, "amp", 1.0);
+	//});
+	if(beat % (4.rand() + 1)== 0, {
+		s.sendMsg("\s_new", "hat", b = s.nextNodeID, 1, 1);
+	});
+	//if(beat % 3 == 0, {
+	//	s.sendMsg("\s_new", "snare", c = s.nextNodeID, 1, 1);
+	//});
+	if(beat % (4.rand() + 2) == 0, {
+		s.sendMsg("\s_new", "openhat", d = s.nextNodeID, 1, 1);
+	});
+	1;
+});*/
+)
+
+
+(
+var freq,amp,dur,freqs1,freqs2,tc;
 freqs1 = List[180,360,720,810];
 freqs2 = List[90,180,360,450];
 amp = 0.96;
-t = TempoClock.new(24,8);
+t = TempoClock.new(16,2);
 t.schedAbs(t.beats.ceil, { arg beat, sec;
-	beat.postln;
+	//beat.postln;
 	if(beat % 2==0, {
 		freq = freqs1.at(freqs1.size.rand()) - freqs2.at(freqs2.size.rand());
 		Synth(\simpleSynth, [\out, ~dryout, \freq, freq, \pan, -1.0,\dur, 0.3.rand(),\amp, 10.0.rand()]);
@@ -445,5 +528,40 @@ t.schedAbs(t.beats.ceil, { arg beat, sec;
 	});
 	1; // repeat
 });
+tc = TempoClock.new(7,3);
+tc.schedAbs(tc.beats.ceil, { arg beat, sec;
+
+	if(beat % 2==0, {
+		freq = freqs1.at(freqs1.size.rand()) - freqs2.at(freqs2.size.rand());
+		//Synth(\simpleSynth, [\out, ~dryout, \freq, freq, \pan, -1.0,\dur, 0.3.rand(),\amp, 10.0.rand()]);
+		s.sendMsg("\s_new", "simpleSynth", a = s.nextNodeID, 1, 1, "out", ~dryout, "freq", freq,"pan", -1.0,"dur",0.3.rand(),"amp",10.rand());
+	});
+	if(beat % 4 == 0, {
+		freq = freqs1.at(freqs1.size.rand()) - freqs2.at(freqs2.size.rand());
+		s.sendMsg("\s_new", "simpleSynth", b = s.nextNodeID, 1, 1, "out", ~dryout, "freq", freq,"pan", -1.0,"dur",0.2.rand(),"amp",5.rand());
+	});
+		//Synth(\simpleSynth, [\out, ~dryout, \freq, freq, \pan, 1.0, \dur, 0.2.rand(), \amp, 5.0.rand()]);
+	//});
+	if(beat % 3 == 0, {
+		freq = freqs1.at(freqs1.size.rand()) - freqs2.at(freqs2.size.rand());
+	s.sendMsg("\s_new", "simpleSynth", c = s.nextNodeID, 1, 1, "out", ~dryout, "freq", freq,"pan", -1.0,"dur",0.1.rand(),"amp",20.rand());
+	});
+		//Synth(\simpleSynth, [\out, ~dryout, \freq, freq, \pan, 0.6, \dur, 0.1.rand(), \amp, 20.0.rand()]);
+	//});
+	if(beat % 2 == 0, {
+		beat.postln;
+		freq = freqs1.at(freqs1.size.rand()) - freqs2.at(freqs2.size.rand());
+		s.sendMsg("\s_new", "kick", d = s.nextNodeID, 1, 1,"amp",1.0);
+		//Synth(\bassDrum, [\freq, freq, \dur, 1.0.rand(), \amp, 20.rand()]);
+	});
+	1; // repeat
+});
+
 )
 t.tempo_(6)
+
+(
+s.sendMsg("/s_new", "snare", x = s.nextNodeID, 1, 1, "freq", 800);
+s.sendMsg("/s_new", "snare", y = s.nextNodeID, 1, 1, "freq", 1001);
+s.sendMsg("/s_new", "snare", z = s.nextNodeID, 1, 1, "freq", 1202);
+)
