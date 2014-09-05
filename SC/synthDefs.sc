@@ -1,5 +1,5 @@
 //server line for sendMsg usage
-s = Server("aServer", NetAddr("127.0.0.1",57110));
+s = Server("aServer", NetAddr("192.168.1.66",57110));
 
 //SynthDefs
 (
