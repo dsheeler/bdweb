@@ -1,6 +1,5 @@
 //server line for sendMsg usage
 s = Server("aServer", NetAddr("192.168.1.66",57110));
-
 //SynthDefs
 (
 SynthDef(\kick, {|out = 0, amp = 0, pan|
@@ -172,6 +171,23 @@ SynthDef(\omgcompress, {|in=2, out=0|
 SynthDef(\omgverb, {|in=2, out=0|
       Out.ar(out, FreeVerb.ar(In.ar(in, 2), 0.9, 0.8, 0.2));
 		}).send(s);
+
+SynthDef(\omgdist, {|in=2, out=0|
+	var b, signal;
+	b = Buffer.alloc(s, 1024, 1);
+	b.cheby([1, 0.5, 1, 0.125]);
+	signal = Shaper.ar(b, 10*In.ar(in,2));
+	    Out.ar(out, signal);
+}).send(s);
+
+SynthDef("omgdist2", {|out=0,in=4,drive=0.3,type=0,amp=1|
+   var sig;
+   sig = In.ar(in, 2)*(((drive**2)+0.02)*50);
+   sig = SelectX.ar(type,[sig.softclip,sig.distort,sig.clip(-1,1),sig.fold(-1,1)]);
+   sig = sig * ((amp**2)*(1-(drive/2.6)));
+   Out.ar(out,sig);
+}).send(s);
+
 SynthDef(\omgflange, {|in=2, out=0, freq=0.2, amp=0.0025, center=0.009325|
 			Out.ar(out, 1* In.ar(in,2) +  DelayC.ar(In.ar(in,2), 0.2, SinOsc.kr(freq, 0, amp, center)));
 			}).send(s);
