@@ -137,69 +137,136 @@ t.schedAbs(t.beats.ceil, { arg beat, sec;
 (
 
 var istep = 0.5;
-var sPar,aPar,xVar,yVar,gcount,freqs1,freqs2,freq,chaosNotes,icount;
+var sPar,aPar,xVar,yVar,gcount,freqs1,freqs2,freq,chaosNotes,icount,newFreq,dur;
 var st1= 1;
-freqs1 = List[60,64,67,71,72].midicps;
+freqs1 = List[60,64,67,69,72,74].midicps;
 //freqs2 = List[48,50,52,53,55,57,59,60].midicps;
 //freqs2 = List[69,71,72,74,76,78,80,81].midicps;
 freqs2 = List[69,72,74,76,81].midicps;
 chaosNotes = List.new;
-aPar = 0.52;
+aPar = 2.5;
 xVar = 0.33;
 sPar = aPar;
 gcount = 1;
 icount = 1;
-istep = (0.52 - 0.15)/1000.0;
+//istep = (aPar - 0.15)/1000.0;
+istep = (4.0-aPar)/1000.0;
 istep.postln;
-st1 = 5;
-t = TempoClock.new(st1,4);
-t.schedAbs(t.beats.ceil, {arg beat, sec;
-	if(beat % 0.5 == 0, {
-		s.sendMsg("\s_new", "hat", a = s.nextNodeID, 1, 1, "amp", 0.9);
-	});
+st1 = 1550.5;
+t = TempoClock.new(st1);
 
-	0.5;
-});
+
 
 t.schedAbs(t.beats.ceil, {arg beat, sec;
-	if(beat % 2.0 == 0, {
-		s.sendMsg("\s_new", "kick", b = s.nextNodeID, 1, 1, "amp", 0.9);
-	});
-	1;
-});
-
-t.schedAbs(t.beats.ceil, {arg beat, sec;
-	if(beat % 9 == 0, {
-		s.sendMsg("\s_new", "snare", c = s.nextNodeID, 1, 1, "amp", 0.9);
-	});
 	if(gcount == 1000, {
 		gcount = 1;
 	}, {
-		aPar = sPar - (istep*gcount);
-		freq = freqs1.at(freqs1.size.rand());
+		aPar = sPar + (istep*gcount);
+
 		250.do {
-			yVar = pow((aPar + 1.0/xVar),(xVar/aPar));
+			//yVar = pow((aPar + 1.0/xVar),(xVar/aPar));
+				yVar = aPar*xVar*(1.0-xVar);
 			if(icount > 230, {
-				if(abs(xVar-yVar) > 0.5, {
-					chaosNotes.add(freq*pow(2,xVar));
+				if(chaosNotes.size() == 0, {
+					chaosNotes.add(xVar);
+					},{
+					newFreq = 1;
+					chaosNotes.do({arg aFreq; if(abs(xVar-aFreq) < 0.1, {newFreq = -1;});});
+					if(newFreq == 1, {
+						chaosNotes.add(xVar);
+					});
 				});
 			});
 			xVar = yVar;
 			icount = icount+1;
 		};
-			chaosNotes.size.postln;
-			chaosNotes.do({arg aFreq; s.sendMsg("\s_new", "simpleSynth", d = s.nextNodeID, 1, 1, "out", ~dryout, "freq",freq*pow(2,(-1.0*xVar)),"pan",0.0,"dur",rrand(0.1,0.3), "amp",10.0);});
+		freq = 666; //freqs1.at(freqs1.size.rand());
+		chaosNotes.do({arg aFreq;
+			dur = t.beatDur;
+			//freq = freqs1.at(freqs1.size.rand());
+				s.sendMsg("\s_new", "simpleSynth", d = s.nextNodeID, 1, 1, "out", ~dryout, "freq",freq*aFreq,"pan",0.0,"dur",dur, "amp",5.0);
+			//dur.wait();
+		});
+			/*if(xVar > 0.5, {
+				t.tempo_((xVar*2.0));
+			});*/
+			xVar.postln;
+			aPar.postln;
 		gcount = gcount +1;
-		gcount.postln;
-		aPar.postln;
 		chaosNotes.clear;
-			icount=0;
+		icount=0;
 	});
 	1;
 });
 
 )
 
+//chaos forked
+(
+
+var istep = 0.5;
+var sPar,aPar,xVar,yVar,gcount,freqs1,freqs2,freq,chaosNotes,icount,newFreq,dur,ccount;
+var st1= 1;
+//jazz chords
+freqs1 = List[36,43,60,77].midicps;
+//freqs1 = List[60,65,70,75,80].midicps;
+//freqs2 = List[48,50,52,53,55,57,59,60].midicps;
+//freqs2 = List[69,71,72,74,76,78,80,81].midicps;
+freqs2 = List[69,72,74,76,81].midicps;
+chaosNotes = List.new;
+aPar = 1.1;
+xVar = 0.33;
+sPar = aPar;
+gcount = 1;
+icount = 1;
+istep = (aPar - 0.15)/1000.0;
+istep.postln;
+st1 = 13;
+t = TempoClock.new(st1);
+
+t.schedAbs(t.beats.ceil, {arg beat, sec;
+	if(gcount == 1000, {
+		gcount = 1;
+	}, {
+		aPar = sPar - (istep*gcount);
+
+		250.do {
+			yVar = pow((aPar + 1.0/xVar),(xVar/aPar));
+			if(icount > 230, {
+				if(chaosNotes.size() == 0, {
+					chaosNotes.add(xVar);
+					},{
+					newFreq = 1;
+					chaosNotes.do({arg aFreq; if(abs(xVar-aFreq) < 0.1, {newFreq = -1;});});
+					if(newFreq == 1, {
+						chaosNotes.add(xVar);
+					});
+				});
+			});
+			xVar = yVar;
+			icount = icount+1;
+		};
+		t.tempo_(st1/chaosNotes.size());
+		freq = freqs1.at(freqs1.size.rand());
+		Task({
+			chaosNotes.do({arg aFreq;
+				dur = t.beatDur*aFreq;
+				//freq = freqs1.at(freqs1.size.rand());
+				freq = (freq*aFreq)*pow(2,(-7/12));
+				s.sendMsg("\s_new", "simpleSynth", d = s.nextNodeID, 1, 1, "out", ~dryout, "freq",freq,"pan",0.0,"dur",dur, "amp",10.0);
+				dur.wait();
+			});
+			chaosNotes.clear;
+			icount = 0;
+			}).play;
+
+		aPar.postln;
+		gcount = gcount + 1;
+	});
+	1;
+});
+
+)
 //brads joy
 (
 var tc,tc2,fastBeatCount,upTempoCount,beatChangeCount;
@@ -216,7 +283,7 @@ upTempoCount = 7;
 boobs = 25.0;
 beatChangeCount = 100;
 
-t = TempoClock.new(5,9);
+t = TempoClock.new(5);
 
 t.schedAbs(t.beats.ceil, { arg beat, sec;
 	if(beat % 1 == 0, {
@@ -270,12 +337,12 @@ t.schedAbs(t.beats.ceil, { arg beat, sec;
 		"Up Tempo".postln;
 	});
 	if(fastBeatCount != 0, {
-		t.tempo_(htemps.at(htemps.size.rand()));
+		t.tempo_(rrand(6,9));
 		if(beat > (fastBeatCount+rrand(45,beatChangeCount)), {
 			fastBeatCount = 0;
 			beatChangeCount = 100.rand()+51;
 			boobs = 25.0;
-			t.tempo_(ltemps.at(ltemps.size.rand()));
+			t.tempo_(rrand(3,6));
 			"Down Tempo".postln;
 			beatChangeCount.postln;
 		});
