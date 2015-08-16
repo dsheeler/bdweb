@@ -1,67 +1,5 @@
-//server line for sendMsg usage
-s = Server("aServer"); //,NetAddr("192.168.1.66",57110));
-s.boot();
-//SynthDefs
 (
-SynthDef(\kick, {|out = 0, amp = 0, pan|
-var env, bass;
-env = EnvGen.kr(Env.perc(0.001, 0.2, 1, -4), 1, doneAction:2);
-bass = SinOsc.ar(80) + Crackle.ar(1, 0.5);
-Out.ar(out, Pan2.ar(bass*env, pan, amp));
-}).add;
-
-SynthDef(\snare2, {|out = 0, amp = 0, pan|
-var env, snare;
-env = EnvGen.kr(Env.perc(0.001, 0.1, 1, -5), 1, doneAction:2);
-snare = SinOsc.ar(120) - WhiteNoise.ar(0.5, 0.5);
-Out.ar(out, Pan2.ar(snare*env, pan, amp));
-}).add;
-
-SynthDef(\hat, {|out = 0, amp = 1, pan|
-var env, hat;
-env = EnvGen.kr(Env.perc(0.002, 0.3, 1, -2), 1, doneAction:2);
-hat = Klank.ar(`[ [ 6563, 9875 ],
-[ 0.6, 0.5 ],
-[ 0.002, 0.003] ], PinkNoise.ar(1));
-Out.ar(out, Pan2.ar(hat*env, pan, amp));
-}).add;
-
-SynthDef(\tom, {|out = 0, amp = 0, pan|
-var env, tom;
-env = EnvGen.kr(Env.perc(0.001, 0.1, 1, -5), 1, doneAction:2);
-tom = SinOsc.ar(440);
-Out.ar(out, Pan2.ar(tom*env, pan, amp));
-}).add;
-
-SynthDef("ws_drum", { arg freq=40, amp=0.9, gate = 1;
-	var osc, ampenv, ampenvctl, tfuncenv, buf, tfuncstream, f1, f2, t, f1envctl;
-
-	b = Buffer.alloc(s,1024,1);
-	t = Signal.fill(512, { arg i; var j = i / 511.0;
-		1 + (0.841 * j) - (0.707 * (j**2)) - (0.595 * (j**3)) + (0.5 * (j**4)) +( 0.42 * (j**5)) - (0.354 * (j**6)) - (0.297 * (j**7)) + (0.25 * (j**8)) + (0.21*(j**9))});
-	t.plot;
-	b.loadCollection(t.asWavetable);
-	b.plot;
-
-	f1 = Env.new([1, 0, 0], [0.04, 0.16]);
-	f2 = Env.new([0, 0.9, 1, 0.9, 0], [0.01, 0.01, 0.01, 0.17], [-1, -3, 3, -5]);
-	f1.plot;
-	f2.plot;
-
-	osc = amp * SinOsc.ar(freq, 0, EnvGen.kr(f2,gate)) * Shaper.ar(b, SinOsc.ar(0.7071*freq, 0, EnvGen.kr(f1, gate, doneAction: 2)));
-	Out.ar(0, Pan2.ar(osc, 0, 1));
-}).load(s);
-
-SynthDef(\voice, {|out = 0, amp = 1, pan = 0|
-
-		// modulating formant frequency
-		var signal, osc;
-	osc =  SinOsc.kr(5,0, 1000, 3000);
-		signal = Formant.ar(440,osc, 0.5*osc);
-		Out.ar(out, Pan2.ar(signal, pan, amp));
-}).add;
-
-SynthDef(\closedhat, {
+	SynthDef(\closedhat, {
 
 		var hatosc, hatenv, hatnoise, hatoutput;
 
@@ -101,12 +39,6 @@ SynthDef(\closedhat, {
 		);
 	}).send(s);
 
-
-SynthDef(\bass, { | atk = 0.01, dur = 0.15, freq = 50, amp=0.8, out=0 |
-	var signal = SinOsc.ar(freq, mul: amp * EnvGen.kr( Env.new( [0.000001, 1, 0.8, 0.8, 0.00000001], [atk, 2*atk, dur-(3*atk+0.25*dur), 0.25*dur], 'exp'), doneAction: 2 )) ! 2;
-	Out.ar(out, signal);
-}).send(s);
-
 	SynthDef("risset_clarinet_pg_153", { arg freq=440, amp=0.2, gate;
 		var osc, ampenv, ampenvctl, tfuncenv, buf, tfuncstream;
 
@@ -128,7 +60,8 @@ SynthDef(\bass, { | atk = 0.01, dur = 0.15, freq = 50, amp=0.8, out=0 |
 	}).writeDefFile;
 	Server.local.sendMsg("/d_load", SynthDef.synthDefDir ++ "risset_clarinet_pg_153.scsyndef");
 
-	SynthDef(\fullkickdrum, {
+
+Synth(\sineSynthDef(\fullkickdrum, {
 
 		var subosc, subenv, suboutput, clickosc, clickenv, clickoutput;
 
@@ -160,23 +93,13 @@ SynthDef(\snare, {|freq=180, amp=1, dur=0.2, cutoff=6000|
 	env = EnvGen.ar(Env.perc(level:amp, attackTime:0.0001, releaseTime:dur), doneAction:2);
 	signal = SinOsc.ar(freq);
 	//snareenv = EnvGen.ar(Env.new([0,1,0.25,0.25,0], [0.01,0.02,0.2,0.1]), doneAction:2);
-	snareout = env * (signal + LPF.ar(WhiteNoise.ar(1),cutoff));
+	snareout = env * (signal + LPF.ar(WhiteNoise.ar(amp),cutoff));
 	Out.ar(0, Pan2.ar(snareout, 0));
 }).send(s);
 
-SynthDef(\risset, {|out= 0, pan= 0, freq= 400, amp= 0.1, dur= 2, t_trig= 1|
-		var amps= #[1, 0.67, 1, 1.8, 2.67, 1.67, 1.46, 1.33, 1.33, 1, 1.33];
-		var durs= #[1, 0.9, 0.65, 0.55, 0.325, 0.35, 0.25, 0.2, 0.15, 0.1, 0.075];
-		var frqs= #[0.56, 0.56, 0.92, 0.92, 1.19, 1.7, 2, 2.74, 3, 3.76, 4.07];
-		var dets= #[0, 1, 0, 1.7, 0, 0, 0, 0, 0, 0, 0];
-		var src= Mix.fill(11, {|i|
-			var env= EnvGen.ar(Env.perc(0.005, dur*durs[i], amps[i], -4.5), t_trig);
-			SinOsc.ar(freq*frqs[i]+dets[i], 0, amp*env);
-		});
-		Out.ar(out, Pan2.ar(src, pan));
-}).send(s);
-
-SynthDef(\bassDrum, {|freq=35.0, amp=1, pan=0.0, dur=1, out=0|
+a = Synth(\snare, [\freq, 126, \cutoff, 4000, \dur, 0.4]);
+b = Synth(\bassDrum);
+SynthDef(\bassDrum, {|freq=75.0, amp=1, pan=0.0, dur=1, out=0|
 			var signal, env;
 			env = EnvGen.ar(Env.perc(level:amp, attackTime:0.0001, releaseTime:dur), doneAction:2);
 			signal = env*SinOsc.ar(Line.kr(1, 0, 0.05, 2*freq, freq));
@@ -189,43 +112,17 @@ SynthDef(\omgcompress, {|in=2, out=0|
 SynthDef(\omgverb, {|in=2, out=0|
       Out.ar(out, FreeVerb.ar(In.ar(in, 2), 0.9, 0.8, 0.2));
 		}).send(s);
-
-SynthDef(\omgdist, {|in=2, out=0|
-	var b, signal;
-	b = Buffer.alloc(s, 1024, 1);
-	b.cheby([1, 0.5, 1, 0.125]);
-	signal = Shaper.ar(b, 10*In.ar(in,2));
-	    Out.ar(out, signal);
-}).send(s);
-
-SynthDef("omgdist2", {|out=0,in=4,drive=0.3,type=0,amp=1|
-   var sig;
-   sig = In.ar(in, 2)*(((drive**2)+0.02)*50);
-   sig = SelectX.ar(type,[sig.softclip,sig.distort,sig.clip(-1,1),sig.fold(-1,1)]);
-   sig = sig * ((amp**2)*(1-(drive/2.6)));
-   Out.ar(out,sig);
-}).send(s);
-
-SynthDef("omgdist3", {|out=0,in=4,drive=0.3,type=0,amp=1|
-   var sig;
-   sig = In.ar(in, 2)*(((drive**2)+0.02)*50);
-	sig = tanh(sig);
-   sig = sig * ((amp**2)*(1-(drive/2.6)));
-   Out.ar(out,sig);
-}).send(s);
-
 SynthDef(\omgflange, {|in=2, out=0, freq=0.2, amp=0.0025, center=0.009325|
 			Out.ar(out, 1* In.ar(in,2) +  DelayC.ar(In.ar(in,2), 0.2, SinOsc.kr(freq, 0, amp, center)));
 			}).send(s);
-
 SynthDef(\simpleSynth, {|freq=220.0, amp=0.2, dur=1.0, pan=0.0, out=0|
 	var signal, env, harmonics;
-	harmonics = 6;
-	env = EnvGen.ar(Env.new(levels: [0, 1.0, 0.8, 0.8, 0], times: [0.01, 0.01, dur-0.02, 1]), doneAction:2);
+	harmonics = 12;
+			env = EnvGen.ar(Env.new(levels: [0, 0.8, 0.8, 0], times: [0.01, dur-0.02, 1]), doneAction:2);
 	signal = Mix.fill(harmonics, {|i|
-		env * SinOsc.ar(freq*(i+1), 1.0.rand, amp * harmonics.reciprocal * harmonics.reciprocal/(i+1));
-	});
-	//signal = LPF.ar(signal, SinOsc.kr(rrand(0.1,1.0), 1.0.rand, 2000, )+2100);
+				env * SinOsc.ar(freq*(i+1), 1.0.rand, amp * harmonics.reciprocal * harmonics.reciprocal/(i+1));
+			});
+	signal = LPF.ar(signal, SinOsc.kr(rrand(0.1,1.0), 1.0.rand, 2000, )+2100);
 	signal = Pan2.ar(signal, pan);
 	Out.ar(out, signal);
 }).send(s);
@@ -311,20 +208,20 @@ SynthDef(\ks_guitar2, { arg note, pan=0.0, rand=160, delayTime=20, noiseType=1;
 	Out.ar(0, LeakDC.ar(x));
 }).store;
 
-SynthDef(\ks_guitar, { arg note, pan=0.0, rand=0.1, delayTime=1, noiseType=1, out=0;
+SynthDef(\ks_guitar, { arg note, pan=0.0, rand=160, delayTime=20, noiseType=1, out=0;
 	var signal, x, y, env, specs, freqs, res, dec;
-	env = Env.new([1, 1], [4*delayTime]);
+	//env = Env.new(#[1.9, 1.9, 0],#[10, 0.001]);
 	// A simple exciter x, with some randomness.
-	signal = Decay.ar(Impulse.ar(0, 0, rand), 1+rand, PinkNoise.ar);
+	signal = Decay.ar(Impulse.ar(0, 0, rand), 1+rand, WhiteNoise.ar);
  	signal = CombL.ar(signal, 0.05, note.reciprocal, delayTime);
 	freqs = [102,  204, 376, 436];
 	res = 0.1*[0.0005, 0.0005, 0.0002, 0.0005];
 	dec = delayTime * [1, 1, 1, 1];
 	specs = [freqs, res, dec];
 	signal = LPF.ar(signal, 10000);
-	signal = signal * EnvGen.ar(env, doneAction:2);
+	x = Klank.ar(`specs, signal) * EnvGen.ar(Env.perc, doneAction:2);
 	//	x = CombC.ar(signal, 0.6, 0.25, 10.0, EnvGen.ar(env, doneAction:2));
-	x = Pan2.ar(signal, pan);
+	x = Pan2.ar(x, pan);
 
 	Out.ar(out, LeakDC.ar(x));
 }).store;
@@ -392,43 +289,96 @@ SynthDef(\wind, { arg amp=1.0, dur=6.0, freqlo=400, freqhi=880;
 	sig = env * BPF.ar(WhiteNoise.ar(0.4), EnvGen.ar(freqenv), 0.1);
 	Out.ar(0, sig ! 2);
 }).store;
+)
 
-SynthDef(\drone, { arg freq1=30.midicps, freq2=30.midicps;
-	var droneOsc1, droneOsc2, sig, env, filterEnv;
-	env = Env.new([0, 1, 0], [15, 15]);
-	filterEnv = Env.new([0, 500, 50], [15, 15]);
-	a = FloatArray.fill(256, {1.0.rand2});
-	c = Buffer.loadCollection(s, a);
-	d = Buffer.loadCollection(s, a);
-	droneOsc1 = DelayN.ar(Osc.ar(c.bufnum, freq1), 0.35, 0.35, 0.1);
-	droneOsc2 = DelayN.ar(Osc.ar(d.bufnum, freq2), 0.49, 0.49, 0.1);
-	sig = [ droneOsc1, droneOsc2 ];
-	sig = LPF.ar(sig, EnvGen.kr(filterEnv), EnvGen.ar(env, doneAction:2));
-	sig = CombL.ar(sig, 0.9, 0.9);
-	Out.ar(0, sig);
-}).send(s);
+//SynthDef(\resonators, { arg f=40, n=50;
+//	var signal = [];
+
+		signal = Mix.fill(n, {|i| Resonz.ar(Dust2.ar(5), f * (i + 1), 0.001, 100)}) * n.reciprocal; // scale to ensure no clipping
+	 Mix.fill(n, {|i| Resonz.ar(Dust2.ar(5), f * (i + 1), 0.001, 100)}) * n.reciprocal; // scale to ensure no clipping
+
+//}).store;
 
 )
 
+//cruiselooch
 (
-
 t = Task({
-	inf.do({
+	var dur, freq, freqs, freqs1, freqs2, lowfreqs, waitTime, amp, index, guitarPlayed=0;
+	var repsOfSameTones = 2;
+	var toneCount = 0;
+	var steps;
+	amp = 80;
+	freqs1 = List[60, 64, 67]; // we fill an array with a scale;
+	freqs2 = List[72, 76, 79, 81, 83];
+	lowfreqs = List[1, 2, 3, 4, 5];
+	~dryout = Bus.audio(s,2);
+	~flange = Bus.audio(s,2);
+	~master = Bus.audio(s,2);
 
-		var freqs = [30, 34, 37, 42, 46, 49];
-		var f1, f2, f3, index;
-		index = freqs.size.rand();
-		f1 = freqs.removeAt(index);
-		index = freqs.size.rand();
-		f2 = freqs.removeAt(index);
-		index = freqs.size.rand();
-		f3 = freqs.removeAt(index);
-		Synth(\drone, [\freq1, f1.midicps(1+0.002.rand2()), \freq2, f1.midicps*(1+0.002.rand2())]);
-		Synth(\drone, [\freq1, f2.midicps(1+0.002.rand2()), \freq2, f2.midicps*(1+0.002.rand2())]);
-		Synth(\drone, [\freq1, f3.midicps(1+0.002.rand2()), \freq2, f3.midicps*(1+0.002.rand2())]);
-		25.wait;
 
-	});
+	Synth(\omgflange, [\in, ~dryout, \out, 0, \amp, 0.02, \center, 0.04, \freq, 0.1], addAction: \addToTail);
+    //Synth(\omgverb, [\in, ~flange, \out, ~master], addAction: \addToTail);
+
+	//Synth(\omgcompress, [\in, ~master], addAction: \addToTail);
+
+	freqs = (72.rand + lowfreqs).midicps;
+	inf.do({(
+		8.do({
+				(
+				if (0.3.coin, {
+				{
+
+					var grain_dur, grain_freq, sin_freq, sin_dur, env_amp;
+					rrand(0,5).sleep();
+					sin_freq = exprand(66.6, 1604.0);
+			 		sin_dur = rrand(10,25);//25.0.rand() + 5.0;
+					grain_dur = exprand(0.001, 0.01); // rrand(0.0001, 0.002);//0.008);
+					grain_freq = 266*pow(1.059463,rrand(1,2));// exprand(66,66);// rand2(5.0) + 22.0;
+			 		env_amp = 0.0001 / (grain_dur ** (2/3) * log(sin_freq) ** 3);
+					"medamp % freq % grain_dur % grain_freq % dur %\n".postf(env_amp, sin_freq, grain_dur, grain_freq, sin_dur);
+					Synth(\sin_grain, [\out, ~dryout, \amp,  env_amp, \grain_dur, grain_dur, \grain_freq, grain_freq, \dur, sin_dur, \freq, sin_freq]);
+					//s.sendMsg("\s_new", "sin_grain", c = s.nextNodeID,1,1, "out", ~dryout, "amp", env_amp, "grain_dur", grain_dur, "grain_freq", grain_freq, "dur", sin_dur, "freq", sin_freq);
+			 	}.fork();
+				});
+			if (0.3.coin, {
+				{
+
+					var grain_dur, grain_freq, sin_freq, sin_dur, env_amp;
+					rrand(0,5).sleep();
+					sin_freq = exprand(66.6, 1604.0);
+			 		sin_dur = rrand(10,25);//25.0.rand() + 5.0;
+					grain_dur = exprand(0.001, 0.01); // rrand(0.0001, 0.002);//0.008);
+					grain_freq = 267*pow(1.059463,rrand(2,3));// exprand(66,66);// rand2(5.0) + 22.0;
+			 		env_amp = 0.0001 / (grain_dur ** (2/3) * log(sin_freq) ** 3);
+					"highamp % freq % grain_dur % grain_freq % dur %\n".postf(env_amp, sin_freq, grain_dur, grain_freq, sin_dur);
+					Synth(\sin_grain, [\out, ~dryout, \amp,  env_amp, \grain_dur, grain_dur, \grain_freq, grain_freq, \dur, sin_dur, \freq, sin_freq]);
+					//s.sendMsg("\s_new", "sin_grain", d = s.nextNodeID,1,1,"out", ~dryout, "amp", env_amp, "grain_dur", grain_dur, "grain_freq", grain_freq, "dur", sin_dur, "freq", sin_freq);
+			 	}.fork();
+				});
+				if (0.3.coin, {
+				{
+
+					var grain_dur, grain_freq, sin_freq, sin_dur, env_amp;
+					rrand(0,5).sleep();
+					sin_freq = exprand(66.6, 1604.0);
+			 		sin_dur = rrand(10,25);//25.0.rand() + 5.0;
+					grain_dur = exprand(0.01, 0.1); // rrand(0.0001, 0.002);//0.008);
+						steps = rrand(1,13);
+						steps = steps * -1;
+						grain_freq = 268*pow(1.059463,rrand(3,4));// exprand(66,66);// rand2(5.0) + 22.0;
+			 		env_amp = 0.0001 / (grain_dur ** (2/3) * log(sin_freq) ** 3);
+					"lowamp % freq % grain_dur % grain_freq % dur %\n".postf(env_amp, sin_freq, grain_dur, grain_freq, sin_dur);
+					Synth(\sin_grain, [\out, ~dryout, \amp,  env_amp, \grain_dur, grain_dur, \grain_freq, grain_freq, \dur, sin_dur, \freq, sin_freq]);
+					//s.sendMsg("\s_new", "sin_grain", d = s.nextNodeID,1,1,"out", ~dryout, "amp", env_amp, "grain_dur", grain_dur, "grain_freq", grain_freq, "dur", sin_dur, "freq", sin_freq);
+			 	}.fork();
+				});
+			 	);
+		});
+		(1.0.rand() + 6.66).wait();
+	)});
 });
 t.play();
 )
+
+

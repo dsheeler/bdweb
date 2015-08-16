@@ -4,7 +4,7 @@
 (
 
 var tc,tc2,fastBeatCount,upTempoCount,beatChangeCount;
-var freq,amp,dur,freqs1,freqs2,boobs,freq2,ltemps,htemps;
+var freq,amp,dur,freqs1,freqs2,boobs,freq2,ltemps,htemps,tmpv,tmpv2;
 
 
 
@@ -30,7 +30,7 @@ t = TempoClock.new(4*72/60);
 t.tempo = 4*72/60;
 
 t.schedAbs(t.beats.ceil, { arg beat, sec;
-	beat.postln();
+	//beat.postln();
 	if(beat % 0.5 == 0, {
 		s.sendMsg("\s_new", "hat", c = s.nextNodeID, 1, 1, "amp", 0.6);
 	});
@@ -38,8 +38,11 @@ t.schedAbs(t.beats.ceil, { arg beat, sec;
 });
 
 t.schedAbs(t.beats.ceil, { arg beat, sec;
-
-	if(beat < 64, {
+	/*tmpv = (beat % 32);
+	tmpv2 = (beat % 15);
+	tmpv.postln;
+	tmpv2.postln;*/
+	if((beat % 10) <= 9.5, {
 	if((beat % 2 == 0) , {
 		{
 		Synth(\ks_guitar, [\out, ~d, \rand, 0.2, \delayTime, t.beatDur,\note, 50.midicps]);
@@ -77,7 +80,7 @@ t.schedAbs(t.beats.ceil, { arg beat, sec;
 
 	});
 
-if(beat > 64, {
+	if((beat % 5) <= 4.5 , {
 	if((beat % 2 == 0) , {
 		{
 		Synth(\ks_guitar, [\out, ~d, \rand, 0.2, \delayTime, 0.5,\note, 50.midicps]);
