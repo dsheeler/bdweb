@@ -1,10 +1,10 @@
 fork{
 	// notes sequence
 	var roots = Pxrand([30,42,54],inf).asStream;
-	var chord1 = Pseq([42,47],inf).asStream;
-	var chord2 = Pseq([46,51],inf).asStream;
-	var chord3 = Pseq([49,54],inf).asStream;
-	var chord4 = Pseq([53,58],inf).asStream;
+	var chord1 = Pseq([42,49],inf).asStream;
+	var chord2 = Pseq([46,53],inf).asStream;
+	var chord3 = Pseq([49,56],inf).asStream;
+	var chord4 = Pseq([53,60],inf).asStream;
 	var chord5 = Pseq([27,32],inf).asStream;
 	var mainTempos = Pxrand([1,2,4,8],inf).asStream;
 	var mainTemposTwo = Pxrand([1,2,4,8],inf).asStream;
@@ -16,7 +16,10 @@ fork{
 	startTime = Main.elapsedTime.ceil;
 	startTimeTwo = Main.elapsedTime.ceil;
 	anApg = Pxrand([0,4,5,7,11,12],inf).asStream;
-	anApgTwo = Pxrand([0,2,6,7,9,11],inf).asStream;
+	//major
+	anApgTwo = Pxrand([0,2,5,4,7,9,10,12], inf).asStream;
+	//minor
+	//anApgTwo = Pxrand([0,2,4,7,9,10], inf).asStream;
 	tcTempo = mainTempos.next;
 	tTempo = mainTemposTwo.next;
 	t = TempoClock.new(tTempo,0,startTime);
@@ -62,12 +65,11 @@ fork{
 		  });
 		 delta = t.beatDur;
 		if(beat % rrand(1,3) == 0, {
-			    Synth(\ks_guitar, [\note, (aFreq+(anApg.next)).midicps, \rand, 0.666]);
-			 	//Synth(\simpleSynth, [\out, ~omgflange, \freq, (aFreq+anApg.next).midicps, \pan, 0.0, \dur, delta, \amp, 1.0]);
+			 	Synth(\simpleSynth, [\out, ~omgflange, \freq, (aFreq+anApg.next).midicps, \pan, 0.0, \dur, delta, \amp, 1.0]);
 				Synth(\detunedSimpleSynth, [\out, ~omgflange, \freq, (aFreq+anApg.next).midicps, \pan, 0.0, \dur, delta, \amp, 1.0]);
 		     });
 		if(beat % rrand(2,7) == 0, {
-			Synth(\simpleSynth, [\out, ~omgflange, \freq, (aFreq+anApg.next).midicps, \pan, 0.0, \dur, delta, \amp, 1.0]);
+			 	Synth(\simpleSynth, [\out, ~omgflange, \freq, (aFreq+anApg.next).midicps, \pan, 0.0, \dur, delta, \amp, 1.0]);
 			Synth(\detunedSimpleSynth, [\out, ~omgflange, \freq, (aFreq+anApg.next).midicps, \pan, 0.0, \dur, delta, \amp, 1.0]);
 		});
 		1;
@@ -82,9 +84,7 @@ fork{
 		});
 		deltaTwo = tc.beatDur;
 		if(beatTwo % rrand(1,3) == 0, {
-			    Synth(\ks_guitar, [\note, (aFreqTwo+(anApgTwo.next+12)).midicps, \rand, 0.666]);
-
-				//Synth(\simpleSynth, [\out, ~omgflange, \freq, (aFreqTwo+anApgTwo.next).midicps, \pan, 0.0, \dur, deltaTwo, \amp, 1.0]);
+				Synth(\simpleSynth, [\out, ~omgflange, \freq, (aFreqTwo+anApgTwo.next).midicps, \pan, 0.0, \dur, deltaTwo, \amp, 1.0]);
 				Synth(\detunedSimpleSynth, [\out, ~omgflange, \freq, (aFreqTwo+anApgTwo.next).midicps, \pan, 0.0, \dur, deltaTwo, \amp, 1.0]);
 		     });
 		if(beatTwo % rrand(2,7) == 0, {
