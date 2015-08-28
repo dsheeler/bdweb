@@ -135,7 +135,7 @@ fork{
 				anApgTwo = Pxrand([0,4,5,7,9,10], inf).asStream;
 				"apgTwo Major #2".postln;
 			});
-			if( (keyCoinTossTwo > 50) && (keyCoinTossTwo <= 100), {
+			if( (keyCoinTossTwo > 75) && (keyCoinTossTwo <= 100), {
 				anApgTwo = Pxrand([0,2,4,5,9,10], inf).asStream;
 				"apgTwo Minor #2".postln;
 			});
