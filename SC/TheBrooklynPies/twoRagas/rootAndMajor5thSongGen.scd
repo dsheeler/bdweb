@@ -123,7 +123,7 @@ fork{
 			"RESTART TC 2".postln;
 			tcTempo.postln;
 		    keyCoinTossTwo = rrand(1,100);
-			if( (keyCoinTossTwo > 0) && (keyCoinTossTwo <= 50), {
+			if( (keyCoinTossTwo > 0) && (keyCoinTossTwo <= 25), {
 				anApgTwo = Pxrand([0,4,7,9,10,12], inf).asStream;
 				"apgTwo Major #1".postln;
 			});
