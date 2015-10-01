@@ -13,7 +13,7 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.activated = false;
    this.activatedCount = 0;
    this.playing = false;
-   this.activatedCountTol = 5;
+   this.activatedCountTol = 25;
    this.previousSum = 0.0;
    this.activatedSum = 0.0;
    this.gettingBaseLine = true;
@@ -41,9 +41,9 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.sbbox = {'x':580, 'y':450, 'width':50, 'height':20};
     this.currentOriginX = 320;
     this.currentOriginY = 240;
-    this.diffTol = 155000;
+    this.diffTol = 250000;
     this.circleSum = 0;
-    console.log("MADE A SOUNDSHAE, IN");
+    this.pushedButton = false;
 }
 
 
@@ -77,14 +77,11 @@ SoundShape.prototype.drawCircle = function() {
     this.drawContext.beginPath();
     this.drawContext.arc(this.center.x,this.center.y,this.radius*percentFull,0,2.0*Math.PI);
     this.drawContext.fill();
-    //this.aSineWave.setFrequency(this.tone *Math.pow(2.0, (5*percentEmpty*(1/12.0))));
-  } else {
-    this.PauseTone();
   }
 }
 
 SoundShape.prototype.drawSaveButton = function () {
-  this.setFillStyle();
+  this.setButtonFillStyle();
   this.drawContext.fillRect(this.sbbox.x,this.sbbox.y,
     this.sbbox.width,this.sbbox.height);
 }
@@ -98,6 +95,17 @@ SoundShape.prototype.setFillStyle = function() {
   }
 
 }
+
+SoundShape.prototype.setButtonFillStyle = function() {
+    
+    if (!this.pushedButton) {
+        this.drawContext.fillStyle = 'rgba(30,100,80,0.8)';
+    } else {
+        this.drawContext.fillStyle = 'rgba(30, 240, 180, 0.8)';
+    }
+    
+}
+
 
 SoundShape.prototype.saveCircle = function(imgData) {
   var sum = 0;
@@ -309,7 +317,7 @@ SoundShape.prototype.findSavedCircleByDiff = function(imgData) {
                     }
                 }
             }
-            if(sum < min) {
+            if(sum < min && sum < this.diffTol) {
                 min = sum;
                 newXOrig = xStarts.data[c] + this.radius;
                 newYOrig = yStarts.data[c] + this.radius;
@@ -320,7 +328,12 @@ SoundShape.prototype.findSavedCircleByDiff = function(imgData) {
             this.currentOriginY = newYOrig;
             this.setCenter({'x':newXOrig,'y':newYOrig});
             this.drawCircle();
-         //   console.log("Move Circle: ",newXOrig,newYOrig,min,sum,this.circleSum);
+            //play tone continuously
+            this.tone = Math.sqrt((this.currentOriginX*this.currentOriginX)+(this.currentOriginY*this.currentOriginY));
+            this.PlayTone();
+        } else {
+            if(this.playing)
+                this.PauseTone();
         }
     } //if have saved circle
 } //emd proto
@@ -451,9 +464,11 @@ SoundShape.prototype.ProcessButtonEntropy = function(imgData) {
             this.saveCircle(imgData);
             this.onFrame = this.frameCount;
             this.activatedCount = 0;
+            this.pushedButton = true;
         } else {
             this.offFrame = this.frameCount;
             this.activatedCount++;
+            this.pushedButton = false;
         }
     }
     this.prevEntropy = entropy;
