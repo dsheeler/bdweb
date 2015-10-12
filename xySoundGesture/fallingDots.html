@@ -46,20 +46,21 @@
                     var actxCall = window.webkitAudioContext || window.AudioContext;
                     aContext = new actxCall();
                     var cRad = 180;
-                    var numShapes = 8;
+                    var numShapes = 4;
                     var unit = 360/numShapes;
-                    var origX = 55;
+                    var origX = 30;
                     var origY = 0;
                     var baseTone = 440;
                     var prevTone = 0;
                     var sRad = 30;
+                    var circleSpacing = output.width/numShapes;
                     for(var i=0; i<numShapes; i++) {
-                        var x = origX + (i*(sRad*2.5));
+                        var x = origX + ((i+1)*sRad) + ((i+1)*circleSpacing);
                         var y = (i % 2 == 0) ? origY : origY + sRad;
-                        aSoundShape = new SoundShape(oContext, aContext, {'x':x, 'y':y},baseTone, sRad, 100, i);
+                        aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad);
                         aSoundShape.setDefaults((new Date()).getTime());
                         soundShapes.push(aSoundShape);
-                        console.log("SoundShape:",i,x,y,sRad,baseTone);
+                        console.log("SoundShape:",i,x,y,sRad,baseTone,circleSpacing);
                     }
                     console.log("Made soundShapes:",soundShapes.length);
                 }
@@ -88,6 +89,7 @@
                     output.style.height = localVideo.clientHeight + 'px';
                 }
                 context.drawImage(video,0,0,output.width,output.height);
+                var imgData = context.getImageData(0, 0, output.width,output.height);
                 //draw init soundshapes if haven't
                 if(initDraw == 0) {
                     for(var i=0; i<soundShapes.length; i++) {
@@ -105,7 +107,14 @@
                     if(soundShapes[i].center.y > (output.height+soundShapes[i].radius)) {
                         soundShapes[i].setDefaults((new Date()).getTime());
                     }
-                    soundShapes[i].drawCircle();
+                    soundShapes[i].saveCircle(imgData);
+                    if(Math.abs(soundShapes[i].redRGBRatio-soundShapes[i].prevRedRGBRatio) < 0.066 || isNaN(Math.abs(soundShapes[i].redRGBRatio-soundShapes[i].prevRedRGBRatio))) {
+                        soundShapes[i].drawCircle();
+                    } else {
+                        soundShapes[i].setDefaults((new Date()).getTime());
+                        soundShapes[i].drawCircle();
+                    }
+                  
                 }
                 lastTime = time;
                 

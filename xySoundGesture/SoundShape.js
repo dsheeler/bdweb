@@ -2,14 +2,13 @@
 
 
 //sound shape takes a canvas drawling context and an audio context and x y point
-SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
+SoundShape = function(id,cContext, aContext, center, tone, radius) {
    this.center = center;
    this.radius = radius;
    this.aSineWave = new SineWave(aContext);
    this.drawContext = cContext;
    this.audioContext = aContext;
-   this.tol = tol;
-   this.tol2 = tol2;
+    this.myId = id;
    this.activated = false;
    this.activatedCount = 0;
    this.playing = false;
@@ -35,7 +34,7 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
     this.savedCircleBlueData = {'data':[]};
    this.oldButtonData = {'data':[]};
    this.makeScales();
-   this.tone = tone * Math.pow(1.05946,this.Aeolian[tol2]);
+   this.tone = tone * Math.pow(1.05946,this.Aeolian[id]);
    this.haveSavedCircle = false;
    this.haveOldButtonData = false;
    this.sbbox = {'x':580, 'y':450, 'width':50, 'height':20};
@@ -45,6 +44,8 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
     this.circleSum = 0;
     this.pushedButton = false;
     this.redRGBRatio = 0;
+    this.prevRedRGBRatio = 0;
+    this.redRGBRatioDiff = 0;
     this.greenRGBRatio = 0;
     this.blueRGBRatio = 0;
     
@@ -52,6 +53,7 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
     this.originX = this.center.x;
     this.originY = this.center.y;
     this.startTime = 0;
+    this.entropyChange = 0.0;
 }
 
 
@@ -144,22 +146,24 @@ SoundShape.prototype.saveCircle = function(imgData) {
         for(var j=xStart; j<xEnd; j++) {
             var idx = (j + (i * output.width))*4;
             if (this.isIn(j,i)) {
-                this.savedCircleRedData.data[pcount] = imgData.data[idx];
-                this.savedCircleGreenData.data[pcount] = imgData.data[idx+1];
-                this.savedCircleBlueData.data[pcount] = imgData.data[idx+2];
-                rSum += this.savedCircleRedData.data[pcount];
-                bSum += this.savedCircleBlueData.data[pcount];
-                gSum += this.savedCircleGreenData.data[pcount];
+               // this.savedCircleRedData.data[pcount] = imgData.data[idx];
+               // this.savedCircleGreenData.data[pcount] = imgData.data[idx+1];
+               // this.savedCircleBlueData.data[pcount] = imgData.data[idx+2];
+                rSum += imgData.data[idx];
+                bSum += imgData.data[idx+1];
+                gSum += imgData.data[idx+2];
                 
-                sum += (this.savedCircleRedData.data[pcount]+this.savedCircleGreenData.data[pcount]+this.savedCircleBlueData.data[pcount]);
+                //sum += (this.savedCircleRedData.data[pcount]+this.savedCircleGreenData.data[pcount]+this.savedCircleBlueData.data[pcount]);
                 pcount++;
             }
         }
     }
     this.diffTol = sum*0.2;
+    this.prevRedRGBRatio = this.redRGBRatio;
     this.setRGBRatio(rSum,gSum,bSum);
+    this.redRGBRatioDiff = this.redRGBRatio - this.prevRedRGBRatio;
     this.haveSavedCircle = true;
-    console.log("Saved circle NumPoints: ",pcount,this.RGBRatio,this.redRGBRatio,this.greenRGBRatio,this.blueRGBRatio);
+    //console.log("Saved circle NumPoints: ",pcount,this.RGBRatio,this.redRGBRatio,this.greenRGBRatio,this.blueRGBRatio);
 }
 
 SoundShape.prototype.findSavedCircleByDiff = function(imgData) {
@@ -424,6 +428,50 @@ SoundShape.prototype.ProcessButtonEntropy = function(imgData) {
     this.prevEntropy = entropy;
     this.frameCount++;
     //console.log("Entropy: ",entropy,this.frameCount);
+}
+
+SoundShape.prototype.GetCircleEntropy = function(imgData) {
+    
+    var numPixels = 0;
+    var yStart = Math.round(this.center.y - this.radius);
+    var yEnd = Math.round(this.center.y + this.radius);
+    var xStart = Math.round(this.center.x - this.radius);
+    var xEnd = Math.round(this.center.x + this.radius);
+    
+    var GreyScale = new Array();
+    for(var i=0; i<256; i++) {
+        GreyScale[i] = 0;
+    }
+    numPixels = 0;
+    for(var i=yStart; i<yEnd; i++) {
+        for(var j=xStart; j<xEnd; j++) {
+            var idx = (j + (i * output.width))*4;
+            var greyScale = 0.299*imgData.data[idx] + 0.587*imgData.data[idx+1] + 0.114*imgData.data[idx+2];
+            GreyScale[Math.round(greyScale)] = GreyScale[Math.round(greyScale)] + 1;
+            numPixels++;
+        }
+    }
+    //calculate entropy
+    var psum = 0.0;
+    for(var index in GreyScale) {
+        if(GreyScale[index] != 0) {
+            psum = psum +  ((GreyScale[index]/numPixels) * Math.log(GreyScale[index]/numPixels)/Math.log(2));
+        }
+    }
+    
+    var entropy = -1.0 * psum;
+    if(!isNaN(entropy)) {
+       this.entropyChange = entropy-this.prevEntropy;
+    } else {
+        this.entropyChange = -1.0;
+    }
+ //   this.entropyChange = entropy-this.prevEntropy;
+  //  if(this.myId == 0) {
+   // console.log("Entropy: ",this.entropyChange,this.frameCount);
+    //}
+    this.prevEntropy = entropy;
+    this.frameCount++;
+
 }
 
 
