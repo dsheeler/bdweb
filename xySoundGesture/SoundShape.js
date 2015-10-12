@@ -41,11 +41,26 @@ SoundShape = function(cContext, aContext, center, tone, radius, tol, tol2) {
    this.sbbox = {'x':580, 'y':450, 'width':50, 'height':20};
     this.currentOriginX = 320;
     this.currentOriginY = 240;
-    this.diffTol = 250000;
+    this.diffTol = 65000;
     this.circleSum = 0;
     this.pushedButton = false;
+    this.redRGBRatio = 0;
+    this.greenRGBRatio = 0;
+    this.blueRGBRatio = 0;
+    
+    this.acceleration = 0.0;
+    this.originX = this.center.x;
+    this.originY = this.center.y;
+    this.startTime = 0;
 }
 
+
+SoundShape.prototype.setDefaults = function(sTime) {
+    this.center.x = this.originX;
+    this.center.y = this.originY;
+    this.acceleration = (Math.random()*0.05)+0.05;
+    this.startTime = sTime;
+}
 
 SoundShape.prototype.setCenter = function(p) {
     this.center = p;
@@ -106,14 +121,23 @@ SoundShape.prototype.setButtonFillStyle = function() {
     
 }
 
+SoundShape.prototype.setRGBRatio = function(rSum,gSum,bSum) {
+    this.redRGBRatio = rSum/(bSum+gSum);
+    this.greenRGBRatio = gSum/(rSum+bSum);
+    this.blueRGBRatio = bSum/(rSum+gSum);
+    this.RGBRatio = this.redRGBRatio+this.greenRGBRatio+this.blueRGBRatio;
+}
 
 SoundShape.prototype.saveCircle = function(imgData) {
-  var sum = 0;
-  var pcount = 0;
-  var yStart = Math.round(this.center.y - this.radius) 
-  var yEnd  = Math.round(this.center.y + this.radius);
-  var xStart = Math.round(this.center.x - this.radius);
-  var xEnd  = Math.round(this.center.x + this.radius);
+    var sum = 0;
+    var rSum = 0;
+    var gSum = 0;
+    var bSum = 0;
+    var pcount = 0;
+    var yStart = Math.round(this.center.y - this.radius)
+    var yEnd  = Math.round(this.center.y + this.radius);
+    var xStart = Math.round(this.center.x - this.radius);
+    var xEnd  = Math.round(this.center.x + this.radius);
 
     
     for(var i=yStart; i<yEnd; i++) {
@@ -123,129 +147,20 @@ SoundShape.prototype.saveCircle = function(imgData) {
                 this.savedCircleRedData.data[pcount] = imgData.data[idx];
                 this.savedCircleGreenData.data[pcount] = imgData.data[idx+1];
                 this.savedCircleBlueData.data[pcount] = imgData.data[idx+2];
+                rSum += this.savedCircleRedData.data[pcount];
+                bSum += this.savedCircleBlueData.data[pcount];
+                gSum += this.savedCircleGreenData.data[pcount];
+                
+                sum += (this.savedCircleRedData.data[pcount]+this.savedCircleGreenData.data[pcount]+this.savedCircleBlueData.data[pcount]);
                 pcount++;
             }
         }
     }
+    this.diffTol = sum*0.2;
+    this.setRGBRatio(rSum,gSum,bSum);
     this.haveSavedCircle = true;
-    console.log("Saved circle NumPoints: ",pcount);
+    console.log("Saved circle NumPoints: ",pcount,this.RGBRatio,this.redRGBRatio,this.greenRGBRatio,this.blueRGBRatio);
 }
-
-
-SoundShape.prototype.findSavedCircleByEntropy = function(imgData) {
-    var numPixels = 0;
-    var yStarts = {'data':[]};
-    var xStarts = {'data':[]};
-    var yEnds = {'data':[]};
-    var xEnds = {'data':[]};
-    var st = 9;
-    var newXOrig = 0;
-    var newYOrig = 0;
-    var min = 9999999999.0;
-    var max = -9999999999.0;
-    
-    var RED = new Array();
-    var GREEN = new Array();
-    var BLUE = new Array();
-
-
-    //n1
-    yStarts.data[0] = Math.round((this.center.y+st) - this.radius);
-    yEnds.data[0]  = Math.round((this.center.y+st) + this.radius);
-    xStarts.data[0] = Math.round(this.center.x - this.radius);
-    xEnds.data[0]  = Math.round(this.center.x + this.radius);
-    //n2
-    yStarts.data[1] = Math.round((this.center.y-st) - this.radius);
-    yEnds.data[1]  = Math.round((this.center.y-st) + this.radius);
-    xStarts.data[1] = Math.round(this.center.x - this.radius);
-    xEnds.data[1]  = Math.round(this.center.x + this.radius);
-    //n3
-    yStarts.data[2] = Math.round(this.center.y - this.radius);
-    yEnds.data[2]  = Math.round(this.center.y + this.radius);
-    xStarts.data[2] = Math.round((this.center.x-st) - this.radius);
-    xEnds.data[2]  = Math.round((this.center.x-st) + this.radius);
-    //n4
-    yStarts.data[3] = Math.round(this.center.y - this.radius);
-    yEnds.data[3]  = Math.round(this.center.y + this.radius);
-    xStarts.data[3] = Math.round((this.center.x+st) - this.radius);
-    xEnds.data[3]  = Math.round((this.center.x+st) + this.radius);
-    //n5
-    yStarts.data[4] = Math.round((this.center.y+st) - this.radius);
-    yEnds.data[4]  = Math.round((this.center.y+st) + this.radius);
-    xStarts.data[4] = Math.round((this.center.x-st) - this.radius);
-    xEnds.data[4]  = Math.round((this.center.x-st) + this.radius);
-    //n6
-    yStarts.data[5] = Math.round((this.center.y+st) - this.radius);
-    yEnds.data[5]  = Math.round((this.center.y+st) + this.radius);
-    xStarts.data[5] = Math.round((this.center.x+st) - this.radius);
-    xEnds.data[5]  = Math.round((this.center.x+st) + this.radius);
-    //n7
-    yStarts.data[6] = Math.round((this.center.y-st) - this.radius);
-    yEnds.data[6]  = Math.round((this.center.y-st) + this.radius);
-    xStarts.data[6] = Math.round((this.center.x-st) - this.radius);
-    xEnds.data[6]  = Math.round((this.center.x-st) + this.radius);
-    //n8
-    yStarts.data[7] = Math.round((this.center.y-st) - this.radius);
-    yEnds.data[7]  = Math.round((this.center.y-st) + this.radius);
-    xStarts.data[7] = Math.round((this.center.x+st) - this.radius);
-    xEnds.data[7]  = Math.round((this.center.x+st) + this.radius);
-    if(this.haveSavedCircle) {
-        min = 9999999999.0;
-        max = -9999999999.0;
-        for(var c = 0; c<8; c++) {
-            numPixels = 0;
-            //zero out color arrays
-            for(var i=0; i<256; i++) {
-                RED[i] = 0;
-                GREEN[i] = 0;
-                BLUE[i] = 0;
-            }
-            //save circle data and calculate greyscale freqs
-            for(var i=yStarts.data[c]; i<yEnds.data[c]; i++) {
-                for(var j=xStarts.data[c]; j<xEnds.data[c]; j++) {
-                    var idx = (j + (i * output.width))*4;
-                    if (this.isIn(j,i)) {
-                        RED[imgData.data[idx]] = RED[imgData.data[idx]] + 1;
-                        GREEN[imgData.data[idx+1]] = GREEN[imgData.data[idx+1]] + 1;
-                        BLUE[imgData.data[idx+2]] = BLUE[imgData.data[idx+2]] + 1;
-                        numPixels++;
-                    }
-                }
-            }
-            var psum = 0.0;
-            for(var index in RED) {
-                if(RED[index] != 0) {
-                    psum = psum +  ((RED[index]/numPixels) * Math.log(RED[index]/numPixels)/Math.log(2));
-                }
-            }
-            for(var index in GREEN) {
-                if(GREEN[index] != 0) {
-                    psum = psum +  ((GREEN[index]/numPixels) * Math.log(GREEN[index]/numPixels)/Math.log(2));
-                }
-            }
-            for(var index in BLUE) {
-                if(BLUE[index] != 0) {
-                    psum = psum +  ((BLUE[index]/numPixels) * Math.log(BLUE[index]/numPixels)/Math.log(2));
-                }
-            }
-            var entropy = -1.0*psum;
-            if(Math.abs(entropy-this.circleEntropy) < min) {
-                min = Math.abs(entropy-this.circleEntropy);
-                newXOrig = xStarts.data[c] + this.radius;
-                newYOrig = yStarts.data[c] + this.radius;
-            }
-            
-        }
-        if(newXOrig != this.currentOriginX) {
-            
-            this.currentOriginX = newXOrig;
-            this.currentOriginY = newYOrig;
-            this.setCenter({'x':newXOrig,'y':newYOrig});
-            this.drawCircle();
-           // console.log("Move Circle: ",newXOrig,newYOrig,entropy,this.circleEntropy);
-        }
-    } //if have saved circle
- } //emd proto
 
 SoundShape.prototype.findSavedCircleByDiff = function(imgData) {
     var numPixels = 0;
@@ -338,83 +253,118 @@ SoundShape.prototype.findSavedCircleByDiff = function(imgData) {
     } //if have saved circle
 } //emd proto
 
-
-SoundShape.prototype.GetEntropy = function(imgData) {
-
-  var skinTonePixel = 0;
-  var notSkinTonePixel = 0;
+SoundShape.prototype.findSavedCircleByPercMag = function(imgData) {
     var numPixels = 0;
-//  var yStart = Math.round(this.center.y - this.radius)
-  //var yEnd  = Math.round(this.center.y + this.radius);
-  //var xStart = Math.round(this.center.x - this.radius);
-  //var xEnd  = Math.round(this.center.x + this.radius);
- var yStart = this.sbbox.y;
-  var yEnd = this.sbbox.y + this.sbbox.height;
-  var xStart = this.sbbox.x;
-  var xEnd = this.sbbox.x + this.sbbox.width;
+    var yStarts = {'data':[]};
+    var xStarts = {'data':[]};
+    var yEnds = {'data':[]};
+    var xEnds = {'data':[]};
+    var st = 6;
+    var newXOrig = 0;
+    var newYOrig = 0;
+    var min = 9999999999.0;
+    var max = -9999999999.0;
+    var rSum = 0;
+    var gSum = 0;
+    var bSum = 0;
+    var movedOn = -1;
+    var selfIndex = 8;
+    //n1
+    yStarts.data[0] = Math.round((this.center.y+st) - this.radius);
+    yEnds.data[0]  = Math.round((this.center.y+st) + this.radius);
+    xStarts.data[0] = Math.round(this.center.x - this.radius);
+    xEnds.data[0]  = Math.round(this.center.x + this.radius);
+    //n2
+    yStarts.data[1] = Math.round((this.center.y-st) - this.radius);
+    yEnds.data[1]  = Math.round((this.center.y-st) + this.radius);
+    xStarts.data[1] = Math.round(this.center.x - this.radius);
+    xEnds.data[1]  = Math.round(this.center.x + this.radius);
+    //n3
+    yStarts.data[2] = Math.round(this.center.y - this.radius);
+    yEnds.data[2]  = Math.round(this.center.y + this.radius);
+    xStarts.data[2] = Math.round((this.center.x-st) - this.radius);
+    xEnds.data[2]  = Math.round((this.center.x-st) + this.radius);
+    //n4
+    yStarts.data[3] = Math.round(this.center.y - this.radius);
+    yEnds.data[3]  = Math.round(this.center.y + this.radius);
+    xStarts.data[3] = Math.round((this.center.x+st) - this.radius);
+    xEnds.data[3]  = Math.round((this.center.x+st) + this.radius);
+    //n5
+    yStarts.data[4] = Math.round((this.center.y+st) - this.radius);
+    yEnds.data[4]  = Math.round((this.center.y+st) + this.radius);
+    xStarts.data[4] = Math.round((this.center.x-st) - this.radius);
+    xEnds.data[4]  = Math.round((this.center.x-st) + this.radius);
+    //n6
+    yStarts.data[5] = Math.round((this.center.y+st) - this.radius);
+    yEnds.data[5]  = Math.round((this.center.y+st) + this.radius);
+    xStarts.data[5] = Math.round((this.center.x+st) - this.radius);
+    xEnds.data[5]  = Math.round((this.center.x+st) + this.radius);
+    //n7
+    yStarts.data[6] = Math.round((this.center.y-st) - this.radius);
+    yEnds.data[6]  = Math.round((this.center.y-st) + this.radius);
+    xStarts.data[6] = Math.round((this.center.x-st) - this.radius);
+    xEnds.data[6]  = Math.round((this.center.x-st) + this.radius);
+    //n8
+    yStarts.data[7] = Math.round((this.center.y-st) - this.radius);
+    yEnds.data[7]  = Math.round((this.center.y-st) + this.radius);
+    xStarts.data[7] = Math.round((this.center.x+st) - this.radius);
+    xEnds.data[7]  = Math.round((this.center.x+st) + this.radius);
+    //self
+    yStarts.data[8] = Math.round((this.center.y) - this.radius);
+    yEnds.data[8]  = Math.round((this.center.y) + this.radius);
+    xStarts.data[8] = Math.round((this.center.x) - this.radius);
+    xEnds.data[8]  = Math.round((this.center.x) + this.radius);
 
-  var GreyScale = new Array(); 
-  for(var i=0; i<256; i++) {
-      GreyScale[i] = 0;
-  }
-  numPixels = 0;
-  for(var i=yStart; i<yEnd; i++) {
-    for(var j=xStart; j<xEnd; j++) {
-      var idx = (j + (i * output.width))*4;
-   //   if (this.isIn(j,i)) {
-        var greyScale = 0.299*imgData.data[idx] + 0.587*imgData.data[idx+1] + 0.114*imgData.data[idx+2];
-	GreyScale[Math.round(greyScale)] = GreyScale[Math.round(greyScale)] + 1;
-	numPixels++;
-    //  }
-    }
-  }
-  //calculate entropy
-  var psum = 0.0;
-  for(var index in GreyScale) {
-     if(GreyScale[index] != 0) {
-	psum = psum +  ((GreyScale[index]/numPixels) * Math.log(GreyScale[index]/numPixels)/Math.log(2));
-     }
-  }
-
-  var entropy = -1.0 * psum;
-  if(this.gettingBaseLine && !isNaN(entropy)) {
-
-        this.Entropies.data[this.activatedCount] = entropy;
-	this.activatedSum = this.activatedSum + entropy;
-	this.activatedCount++;
-        if(entropy < this.min)
-	  this.min = entropy;
-        if(entropy > this.max)
-          this.max = entropy;
-	if(this.activatedCount == 150) {
-	    this.gettingBaseLine = false;
-	    this.tol = this.activatedSum/this.activatedCount;
-	    var sigmaSum = 0;
-	    for(var i=0; i<this.activatedCount; i++) {
-		sigmaSum = sigmaSum + (Math.pow((this.Entropies.data[i]-this.tol),2));	
-	    }
-	    this.sigma = Math.sqrt(sigmaSum/this.activatedCount);
-	    console.log("Base Entropy is:",this.tol,this.min,this.max,this.sigma,sigmaSum,numPixels);
-	}
-  } else {
-   //console.log("Entropy:",this.center.x,this.center.y,entropy,this.prevEntropy,this.max);
-   if(entropy > this.max+0.5) { // && entropy < this.tol + (this.max*0.5)) {
-    if(!this.playing)
-     //this.PlayTone();
-     this.saveCircle(imgData);
-     this.setCenter({'x':320, 'y':240});
-     this.drawCircle();
-     this.onFrame = this.frameCount;
-    } else {
-     if(this.playing)
-      //this.PauseTone();
-      this.offFrame = this.frameCount;
-    }
-  }
-  this.prevEntropy = entropy;
-  this.frameCount++;
-  //console.log("Entropy: ",entropy,this.frameCount);
-}
+    if(this.haveSavedCircle) {
+        min = 9999999999.0;
+        max = -9999999999.0;
+        movedOn = -1;
+        for(var c = 0; c<9; c++) {
+            sum = 0;
+            //save circle data and calculate greyscale freqs
+            var pcount = 0;
+            for(var i=yStarts.data[c]; i<yEnds.data[c]; i++) {
+                for(var j=xStarts.data[c]; j<xEnds.data[c]; j++) {
+                    var idx = (j + (i * output.width))*4;
+                    if (this.isIn(j,i)) {
+                        rSum += imgData.data[idx];
+                        bSum += imgData.data[idx+1];
+                        gSum += imgData.data[idx+2];
+                        pcount++;
+                    }
+                }
+            }
+            var rDiff = (rSum/(gSum+bSum)) - this.redRGBRatio;
+            var gDiff = (gSum/(rSum+bSum)) - this.greenRGBRatio;
+            var bDiff = (bSum/(rSum+gSum)) - this.blueRGBRatio;
+            var rgbDiffMagnitude = Math.sqrt((rDiff*rDiff)+(gDiff*gDiff)+(bDiff*bDiff));
+          //  console.log("DATA: ",c,rDiff,gDiff,bDiff,rgbDiffMagnitude);
+            if(rgbDiffMagnitude < this.diffTol) {
+                if(rgbDiffMagnitude < min) {
+                    min = rgbDiffMagnitude;
+                    newXOrig = xStarts.data[c] + this.radius;
+                    newYOrig = yStarts.data[c] + this.radius;
+                    movedOn = c;
+                }
+            }
+        }
+        if(movedOn != selfIndex) {
+            newXOrig = xStarts.data[movedOn] + this.radius;
+            newYOrig = yStarts.data[movedOn] + this.radius;
+            this.currentOriginX = newXOrig;
+            this.currentOriginY = newYOrig;
+            this.setCenter({'x':newXOrig,'y':newYOrig});
+            this.drawCircle();
+            //play tone continuously
+            this.tone = Math.sqrt((this.currentOriginX*this.currentOriginX)+(this.currentOriginY*this.currentOriginY));
+            this.PlayTone();
+            console.log("DATA: ",movedOn,rDiff,gDiff,bDiff,rgbDiffMagnitude);
+        } else {
+            if(this.playing)
+                this.PauseTone();
+        }
+    } //if have saved circle
+} //emd proto
 
 SoundShape.prototype.ProcessButtonEntropy = function(imgData) {
     
@@ -476,143 +426,6 @@ SoundShape.prototype.ProcessButtonEntropy = function(imgData) {
     //console.log("Entropy: ",entropy,this.frameCount);
 }
 
-SoundShape.prototype.SaveCircleEntropy = function(imgData) {
-    
-    var sum = 0;
-    var pcount = 0;
-    var yStart = Math.round(this.center.y - this.radius)
-    var yEnd  = Math.round(this.center.y + this.radius);
-    var xStart = Math.round(this.center.x - this.radius);
-    var xEnd  = Math.round(this.center.x + this.radius);
-    var numPixels = 0;
-
-    var RED = new Array();
-    var GREEN = new Array();
-    var BLUE = new Array();
-    for(var i=0; i<256; i++) {
-        RED[i] = 0;
-        GREEN[i] = 0;
-        BLUE[i] = 0;
-    }
-    //save circle data and calculate greyscale freqs
-    for(var i=yStart; i<yEnd; i++) {
-        for(var j=xStart; j<xEnd; j++) {
-            var idx = (j + (i * output.width))*4;
-            if (this.isIn(j,i)) {
-                this.savedCircleData.data[numPixels] = imgData.data[idx];
-                var greyScale = 0.299*imgData.data[idx] + 0.587*imgData.data[idx+1] + 0.114*imgData.data[idx+2];
-                RED[imgData.data[idx]] = RED[imgData.data[idx]] + 1;
-                GREEN[imgData.data[idx+1]] = GREEN[imgData.data[idx+1]] + 1;
-                BLUE[imgData.data[idx+2]] = BLUE[imgData.data[idx+2]] + 1;
-                numPixels++;
-            }
-        }
-    }
-    this.haveSavedCircle = true;
-    //calculate entropy
-    var psum = 0.0;
-    for(var index in RED) {
-        if(RED[index] != 0) {
-            psum = psum +  ((RED[index]/numPixels) * Math.log(RED[index]/numPixels)/Math.log(2));
-        }
-    }
-    for(var index in GREEN) {
-        if(GREEN[index] != 0) {
-            psum = psum +  ((GREEN[index]/numPixels) * Math.log(GREEN[index]/numPixels)/Math.log(2));
-        }
-    }
-    for(var index in BLUE) {
-        if(BLUE[index] != 0) {
-            psum = psum +  ((BLUE[index]/numPixels) * Math.log(BLUE[index]/numPixels)/Math.log(2));
-        }
-    }
-    
-    var entropy = -1.0 * psum;
-    this.circleEntropy = entropy;
-    console.log("Saved Circle Data! Entropy: ",this.circleEntropy,this.frameCount);
-}
-
-
-SoundShape.prototype.GetEntropyChange = function(imgData) {
-  var yStart = Math.round(this.center.y - this.radius)
-  var yEnd  = Math.round(this.center.y + this.radius);
-  var xStart = Math.round(this.center.x - this.radius);
-  var xEnd  = Math.round(this.center.x + this.radius);
-
-  var GreyScale = new Array();
-  for(var i=0; i<256; i++) {
-      GreyScale[i] = 0;
-  }
-  var numPixels = 0;
-  for(var i=yStart; i<yEnd; i++) {
-    for(var j=xStart; j<xEnd; j++) {
-      var idx = (j + (i * output.width))*4;
-      if (this.isIn(j,i)) {
-        var greyScale = 0.299*imgData.data[idx] + 0.587*imgData.data[idx+1] + 0.114*imgData.data[idx+2];
-        GreyScale[Math.round(greyScale)] = GreyScale[Math.round(greyScale)] + 1;
-        numPixels++;
-      }
-    }
-  }
-  //calculate entropy
-  var psum = 0.0;
-  for(var index in GreyScale) {
-     if(GreyScale[index] != 0) {
-        psum = psum +  ((GreyScale[index]/numPixels) * Math.log(GreyScale[index]/numPixels)/Math.log(2));
-     }
-  }
-
-  var entropy = -1.0 * psum;
-  if(this.gettingBaseLine && !isNaN(entropy)) {
-     this.Entropies.data[this.activatedCount] = entropy;
-     this.activatedSum = this.activatedSum + entropy;
-     this.activatedCount++;
-     if(entropy < this.min)
-       this.min = entropy;
-     if(entropy > this.max)
-       this.max = entropy;
-     if(this.activatedCount == 150) {
-       this.gettingBaseLine = false;
-       this.tol = this.activatedSum/this.activatedCount;
-       var sigmaSum = 0;
-       for(var i=0; i<this.activatedCount; i++) {
-           sigmaSum = sigmaSum + (Math.pow((this.Entropies.data[i]-this.tol),2));
-       }
-       this.sigma = Math.sqrt(sigmaSum/this.activatedCount);
-       console.log("Base Entropy is:",this.tol,this.min,this.max,this.sigma,sigmaSum,numPixels);
-       this.activatedCount = 0;
-       this.Entropies = {'data':[]};
-     }
-
-  } else {
-
-    if(this.activatedCount == this.activatedCountTol) {
-      var esum = 0.0;
-      var eavg = 0.0;
-      for(var i=0; i<this.Entropies.data.length; i++) {
-	 esum = esum + this.Entropies.data[i];
-      }
-      eavg = esum/this.Entropies.data.length;
-      if(eavg > this.tol+1.0) {
-        if(!this.playing) {
-	        this.PlayTone();
-          this.onFrame = this.frameCount;
-        }
-      } else {
-        if(this.playing)
-	  this.offFrame = this.frameCount;
-      }
-      this.prevEntropy = eavg;
-      this.activatedCount = 0;
-    } else {
-      if(!isNaN(entropy)) {
-        this.Entropies.data[this.activatedCount] = entropy;
-        this.activatedCount++;
-      }
-   }
-  this.frameCount++;
-  }
-}
 
 SoundShape.prototype.PlayOrPause = function() {
     this.playing ? this.PauseTone() : this.PlayTone();
@@ -662,3 +475,5 @@ SoundShape.prototype.makeScales = function () {
    this.Aeolian[6] = 10;
    this.Aeolian[7] = 12;
 }
+
+

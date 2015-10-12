@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Web Fun</title>
+        <meta charset="utf-8">
+            <!--<link rel="shortcut icon" href="/favicon.png"> -->
+            
+            <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+            
+            <script type="text/javascript" src="adapter.js"></script>
+            <script type="text/javascript" src="sinewave.js"></script>
+            <script type="text/javascript" src="SoundShape.js"></script>
+            <script>
+                
+                window.onload = init;
+                var oldData;
+                var fuckData;
+                var newData;
+                var threshold = 75;
+                var aContext;
+                var oConext;
+                var output;
+                var localVideo;
+                var soundShapes = [];
+                var oldDataCheck = -1;
+                var frameCount = 0;
+                var initDraw = 0;
+                //impossible to do anything other than 2d
+                var numRows = 1;
+                var numCols = 1;
+                
+                function init() {
+                    localVideo = document.querySelector('#localVideo');;
+                    output = document.querySelector('#output');
+                    oContext = output.getContext('2d');
+                    var localStream;
+                    
+                    window.requestAnimFrame = (function(callback) {
+                        return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || windowoRequestAnimationFrame || window.msRequestAnimationFrame ||
+                        function(callback) {
+                            window.setTimeout(callback, 1000 / 60);
+                        };
+                    })();
+                    startMedia();
+                                                
+                    var actxCall = window.webkitAudioContext || window.AudioContext;
+                    aContext = new actxCall();
+                    var cRad = 180;
+                    var numShapes = 8;
+                    var unit = 360/numShapes;
+                    var origX = 55;
+                    var origY = 0;
+                    var baseTone = 440;
+                    var prevTone = 0;
+                    var sRad = 30;
+                    for(var i=0; i<numShapes; i++) {
+                        var x = origX + (i*(sRad*2.5));
+                        var y = (i % 2 == 0) ? origY : origY + sRad;
+                        aSoundShape = new SoundShape(oContext, aContext, {'x':x, 'y':y},baseTone, sRad, 100, i);
+                        aSoundShape.setDefaults((new Date()).getTime());
+                        soundShapes.push(aSoundShape);
+                        console.log("SoundShape:",i,x,y,sRad,baseTone);
+                    }
+                    console.log("Made soundShapes:",soundShapes.length);
+                }
+            
+            function startMedia() {
+                var constraints = {video: true, audio: true};
+                getUserMedia(constraints, handleUserMedia, handleUserMediaError);
+                console.log('Getting user media with constraints', constraints);
+            }
+            
+            function handleUserMedia(stream) {
+                console.log('Adding local stream.');
+                if (localVideo == null) {
+                    localVideo = document.querySelector('#localVideo');
+                }
+                attachMediaStream(localVideo, stream);
+                localStream = stream;
+            }
+            
+            function animate(video,context) {
+                //write video image
+                if (output.width != localVideo.clientWidth) {
+                    output.width = localVideo.clientWidth;
+                    output.height = localVideo.clientHeight;
+                    output.style.width = localVideo.clientWidth +'px';
+                    output.style.height = localVideo.clientHeight + 'px';
+                }
+                context.drawImage(video,0,0,output.width,output.height);
+                //draw init soundshapes if haven't
+                if(initDraw == 0) {
+                    for(var i=0; i<soundShapes.length; i++) {
+                        soundShapes[i].drawCircle();
+                    }
+                    initDraw = 1;
+                }
+                //animate soundshapes
+                // pixels / second^2
+                var gravity = 200;
+                
+                for(var i=0; i<soundShapes.length; i++) {
+                    var time = (new Date()).getTime() - soundShapes[i].startTime;
+                    soundShapes[i].center.y = soundShapes[i].acceleration * gravity * Math.pow(time/1000, 2);
+                    if(soundShapes[i].center.y > (output.height+soundShapes[i].radius)) {
+                        soundShapes[i].setDefaults((new Date()).getTime());
+                    }
+                    soundShapes[i].drawCircle();
+                }
+                lastTime = time;
+                
+                // request new frame
+                requestAnimFrame(function() {
+                                 animate(video, context);
+                                 });
+            }
+            
+            function handleUserMediaError(error){
+                console.log('navigator.getUserMedia error: ', error);
+            }
+            setTimeout(function() {
+                       animate(localVideo,oContext);
+                       }, 2000);
+                </script>
+            
+    </head>
+    
+    <body>
+        <div id='container'>
+            <div id='videos'>
+                <canvas id='output'></canvas>
+                <video id='localVideo' muted  autoplay style='visibility:hidden'></video>
+            </div>
+        </div>
+    </body>
+</html>
