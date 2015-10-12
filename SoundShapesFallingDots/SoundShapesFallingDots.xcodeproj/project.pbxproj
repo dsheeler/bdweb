@@ -1,0 +1,80 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXFileReference section */
+		A7B755451BCC7E9000106B73 /* fallingDots.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = fallingDots.html; sourceTree = "<group>"; };
+		A7B755461BCC7E9000106B73 /* SoundShape.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SoundShape.js; sourceTree = "<group>"; };
+		A7B755471BCC7E9000106B73 /* sinewave.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = sinewave.js; sourceTree = "<group>"; };
+		A7B755481BCC7E9000106B73 /* tonePlayer.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = tonePlayer.js; sourceTree = "<group>"; };
+		A7B755491BCC7E9000106B73 /* adapter.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = adapter.js; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		A7B7553E1BCC7E7200106B73 = {
+			isa = PBXGroup;
+			children = (
+				A7B755451BCC7E9000106B73 /* fallingDots.html */,
+				A7B755461BCC7E9000106B73 /* SoundShape.js */,
+				A7B755471BCC7E9000106B73 /* sinewave.js */,
+				A7B755481BCC7E9000106B73 /* tonePlayer.js */,
+				A7B755491BCC7E9000106B73 /* adapter.js */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXProject section */
+		A7B7553F1BCC7E7200106B73 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0510;
+			};
+			buildConfigurationList = A7B755421BCC7E7200106B73 /* Build configuration list for PBXProject "SoundShapesFallingDots" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = A7B7553E1BCC7E7200106B73;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		A7B755431BCC7E7200106B73 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		A7B755441BCC7E7200106B73 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A7B755421BCC7E7200106B73 /* Build configuration list for PBXProject "SoundShapesFallingDots" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A7B755431BCC7E7200106B73 /* Debug */,
+				A7B755441BCC7E7200106B73 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A7B7553F1BCC7E7200106B73 /* Project object */;
+}
