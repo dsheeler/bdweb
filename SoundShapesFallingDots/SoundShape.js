@@ -3,46 +3,45 @@
 
 //sound shape takes a canvas drawling context and an audio context and x y point
 SoundShape = function(id,cContext, aContext, center, tone, radius) {
-   this.center = center;
-   this.radius = radius;
-   this.aSineWave = new SineWave(aContext);
-   this.drawContext = cContext;
-   this.audioContext = aContext;
-    this.myId = id;
-   this.frameCount = 0;
-   this.onFrame = 0;
-   this.offFrame = 0;
-   this.Ionian = [];
-   this.Aeolian = [];
-   this.makeScales();
-   this.tone = tone * Math.pow(1.05946,this.Aeolian[id]);
-    this.currentOriginX = 320;
-    this.currentOriginY = 240;
-    
-    this.acceleration = 0.0;
-    this.originX = this.center.x;
-    this.originY = this.center.y;
-    this.startTime = 0;
-    this.entropyChange = 0.0;
-    this.soundShapeIsReady = -1;
-    this.diffSum = 0.0;
-    this.diffSumTol = 2250.0;
-    this.padTime = 1000.0;
-    this.toneSave = 0.0;
+  this.center = center;
+  this.radius = radius;
+  this.drawContext = cContext;
+  this.audioContext = aContext;
+  this.aSineWave = new SineWave(this.audioContext);
+  this.myId = id;
+  this.frameCount = 0;
+  this.onFrame = 0;
+  this.offFrame = 0;
+  this.Ionian = [];
+  this.Aeolian = [];
+  this.makeScales();
+  this.tone = tone * Math.pow(1.05946,this.Aeolian[id]);
+  this.currentOriginX = 320;
+  this.currentOriginY = 240;
+  this.acceleration = 0.0;
+  this.originX = this.center.x;
+  this.originY = this.center.y;
+  this.startTime = 0;
+  this.entropyChange = 0.0;
+  this.soundShapeIsReady = -1;
+  this.diffSum = 0.0;
+  this.diffSumTol = 2250.0;
+  this.padTime = 1000.0;
+  this.toneSave = 0.0;
+  this.amplitude = 0.5;
 }
 
-
 SoundShape.prototype.setDefaults = function(sTime) {
-    this.center.x = this.originX;
-    this.center.y = this.originY;
-    this.acceleration = (Math.random()*0.05)+0.05;
-    this.startTime = sTime;
+  this.center.x = this.originX;
+  this.center.y = this.originY;
+  this.acceleration = (Math.random()*0.05)+0.05;
+  this.startTime = sTime;
 }
 
 SoundShape.prototype.setCenter = function(p) {
-    this.center = p;
-    this.currentOriginX = this.center.x;
-    this.currentOriginY = this.center.y;
+  this.center = p;
+  this.currentOriginX = this.center.x;
+  this.currentOriginY = this.center.y;
 }
 
 SoundShape.prototype.setTone = function(t) {
@@ -125,13 +124,15 @@ var dist = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
 }
 
 SoundShape.prototype.PlayTone = function () {
-     this.aSineWave.setFrequency(this.tone-(this.center.y/2.0));
-     this.aSineWave.play();
-     this.playing = true;
+ // this.aSineWave = new SineWave(this.audioContext);
+  this.aSineWave.setFrequency(this.tone);
+  this.aSineWave.setAmplitude(this.amplitude);
+  this.aSineWave.play();
+  this.playing = true;
 }
 
 SoundShape.prototype.PauseTone = function () {
-     this.aSineWave.pause();
+//     this.aSineWave.pause();
      this.playing = false;
 }
 

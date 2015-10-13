@@ -7,86 +7,57 @@ Mohit Cheppudira - http://0xfe.blogspot.com
 
 /* Create a generator for the given AudioContext. */
 SineWave = function(context) {
-  this.x = 0;
   this.context = context;
-  this.sampleRate = this.context.sampleRate;
   this.frequency = 440;
-  this.next_frequency = this.frequency;
   this.amplitude = 0.1;
   this.playing = false;
-  this.nr = true; // noise reduction
-
-  // Create an audio node for the tone generator
-  this.node = context.createScriptProcessor(1024);
-
-  // Setup audio data callback for this node. The callback is called
-  // when the node is connected and expects a buffer full of audio data
-  // in return.
-  var that = this;
-  this.node.onaudioprocess = function(e) { that.process(e) };
+  this.osc = this.context.createOscillator();
+  this.gain = this.context.createGain();
+  this.gain.gain.value = 0;
+  this.osc.connect(this.gain);
+  this.osc.start(0);
+  this.fmosc = this.context.createOscillator();
+  this.fmosc.frequency.value = 4;
+  this.fmosc.start(0);
+  this.fmgain = this.context.createGain();
+  this.fmgain.gain.value = this.osc.frequency.value * 0.15;
+  this.fmosc.connect(this.fmgain);
+  this.fmgain.connect(this.osc.frequency);
 }
 
 SineWave.prototype.setAmplitude = function(amplitude) {
   this.amplitude = amplitude;
 }
 
-// Enable/Disable Noise Reduction
-SineWave.prototype.setNR = function(nr) {
-  this.nr = nr;
-}
-
 SineWave.prototype.setFrequency = function(freq) {
-  this.next_frequency = freq;
-
-  // Only change the frequency if not currently playing. This
-  // is to minimize noise.
-  if (!this.playing) this.frequency = freq;
-}
-
-SineWave.prototype.process = function(e) {
-  // Get a reference to the output buffer and fill it up.
-  var right = e.outputBuffer.getChannelData(0),
-      left = e.outputBuffer.getChannelData(1);
-
-  // We need to be careful about filling up the entire buffer and not
-  // overflowing.
-  for (var i = 0; i < right.length; ++i) {
-    right[i] = left[i] = this.amplitude * Math.sin(
-        this.x++ / (this.sampleRate / (this.frequency * 2 * Math.PI)));
-
-    // A vile low-pass-filter approximation begins here.
-    //
-    // This reduces high-frequency blips while switching frequencies. It works
-    // by waiting for the sine wave to hit 0 (on it's way to positive territory)
-    // before switching frequencies.
-    if (this.next_frequency != this.frequency) {
-      if (this.nr) {
-        // Figure out what the next point is.
-        next_data = this.amplitude * Math.sin(
-          this.x / (this.sampleRate / (this.frequency * 2 * Math.PI)));
-
-        // If the current point approximates 0, and the direction is positive,
-        // switch frequencies.
-        if (right[i] < 0.001 && right[i] > -0.001 && right[i] < next_data) {
-          this.frequency = this.next_frequency;
-          this.x = 0;
-        }
-      } else {
-        this.frequency = this.next_frequency;
-        this.x = 0;
-      }
-    }
-  }
+  this.frequency = freq;
+  if (this.osc) this.osc.frequency.value = this.frequency;
 }
 
 SineWave.prototype.play = function() {
-  // Plug the node into the output.
-  this.node.connect(this.context.destination);
-  this.playing = true;
+  if (!this.playing) {
+    this.osc.frequency.value = this.frequency;
+    this.gain.gain.setValueAtTime(0, this.context.currentTime);
+    this.gain.gain.linearRampToValueAtTime(this.amplitude*1.5, 0.001 + this.context.currentTime);
+    this.gain.gain.linearRampToValueAtTime(this.amplitude,  0.1 + this.context.currentTime);
+    this.playing = true;
+  }
 }
 
 SineWave.prototype.pause = function() {
-  // Unplug the node.
-  this.node.disconnect();
-  this.playing = false;
+  if (this.playing) {
+    var delay = 0.1;
+    var release = 1.50;
+    this.gain.gain.cancelScheduledValues(this.context.currentTime);
+    this.gain.gain.value = this.amplitude;
+    this.gain.gain.setValueAtTime(this.amplitude, 0.001 + this.context.currentTime);
+    this.gain.gain.setTargetAtTime(0, this.context.currentTime+0.01, release);
+    var self = this;
+    setTimeout(function() { self.fmosc.stop(0); self.osc.stop(0); }, 10*release*1000);
+    this.playing = false;
+  }
+}
+
+SineWave.prototype.getOutNode = function() {
+  return this.gain;
 }

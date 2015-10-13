@@ -84,7 +84,7 @@
             function detectSoundShape(aSoundShape) {
                 if(aSoundShape.diffSum < aSoundShape.diffSumTol) {
                     aSoundShape.drawCircle();
-                    aSoundShape.PauseTone();
+                   // aSoundShape.PauseTone();
                 } else {
                     aSoundShape.PlayTone();
                     aSoundShape.drawCircle();
@@ -111,6 +111,7 @@
                     for(var i=0; i<soundShapes.length; i++) {
                         var time = (new Date()).getTime() - soundShapes[i].startTime;
                         if(time > 0) {
+                    soundShapes[i].PauseTone();
                             soundShapes[i].center.y = soundShapes[i].acceleration * gravity * Math.pow(time/1000, 2);
                             if(soundShapes[i].center.y > (output.height+soundShapes[i].radius)) {
                                 soundShapes[i].setDefaults((new Date()).getTime()+(Math.random()*soundShapes[i].padTime));
