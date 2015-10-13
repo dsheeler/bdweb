@@ -24,12 +24,10 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.originY = this.center.y;
     this.startTime = 0;
     this.entropyChange = 0.0;
-    this.soundShapeIsReady = -1;
     this.diffSum = 0.0;
     this.diffSumTol = 2250.0;
     this.padTime = 1000.0;
-    this.toneSave = 0.0;
-}
+  }
 
 
 SoundShape.prototype.setDefaults = function(sTime) {
@@ -51,10 +49,6 @@ SoundShape.prototype.setTone = function(t) {
 
 SoundShape.prototype.setRadius = function(r) {
   this.radius = r;
-}
-
-SoundShape.prototype.setTol = function(tl) {
-  this.tol = tl;
 }
 
 SoundShape.prototype.drawCircle = function() {
