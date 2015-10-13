@@ -1,77 +1,60 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Web Fun</title>
-        <meta charset="utf-8">
-            <!--<link rel="shortcut icon" href="/favicon.png"> -->
-            
-            <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
-            
-            <script type="text/javascript" src="adapter.js"></script>
-            <script type="text/javascript" src="sinewave.js"></script>
-            <script type="text/javascript" src="SoundShape.js"></script>
-            <script>
+  <head>
+    <title>Web Fun</title>
+      <meta charset="utf-8">
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+        <script type="text/javascript" src="adapter.js"></script>
+        <script type="text/javascript" src="sinewave.js"></script>
+        <script type="text/javascript" src="SoundShape.js"></script>
+        <script>
                 
-                window.onload = init;
-                var oldData;
-                var fuckData;
-                var newData;
-                var threshold = 75;
-                var aContext;
-                var oConext;
-                var output;
-                var localVideo;
-                var soundShapes = [];
-                var oldData = {'data':[]};
-                var oldDataCheck = -1;
-                var frameCount = 0;
-                var initDraw = 0;
-                var gravityBase = 200;
-                var gravity = gravityBase;
-                var gravityOffset = 75.0;
-                var poppedCount = 0;
-                var numShapes = 4;
-                //impossible to do anything other than 2d
-                var numRows = 1;
-                var numCols = 1;
-                var masterBus = 0;
-                function init() {
-                    localVideo = document.querySelector('#localVideo');;
-                    output = document.querySelector('#output');
-                    oContext = output.getContext('2d');
-                    var localStream;
+            window.onload = init;
+            var aContext;
+            var oConext;
+            var output;
+            var localVideo;
+            var soundShapes = [];
+            var collectOldDataCount = 180;
+            var oldData = {'data':[]};
+            var frameCount = 0;
+            var numShapes = 4;
+            
+            function init() {
+                localVideo = document.querySelector('#localVideo');;
+                output = document.querySelector('#output');
+                oContext = output.getContext('2d');
+                var localStream;
                     
-                    window.requestAnimFrame = (function(callback) {
-                        return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || windowoRequestAnimationFrame || window.msRequestAnimationFrame ||
-                        function(callback) {
-                            window.setTimeout(callback, 1000 / 60);
-                        };
-                    })();
+                window.requestAnimFrame = (function(callback) {
+                    return window.requestAnimationFrame ||
+                        window.webkitRequestAnimationFrame ||
+                        window.mozRequestAnimationFrame ||
+                        windowoRequestAnimationFrame ||
+                        window.msRequestAnimationFrame ||
+                        function(callback) { window.setTimeout(callback, 1000 / 60);};
+                })();
                                                 
-                    var actxCall = window.webkitAudioContext || window.AudioContext;
-                    aContext = new actxCall();
+                var actxCall = window.webkitAudioContext || window.AudioContext;
+                aContext = new actxCall();
                     
-                    var cRad = 180;
-                   // var numShapes = 4;
-                    var unit = 360/numShapes;
-                    var origX = 30;
-                    var origY = -60;
-                    var baseTone = 440;
-                    var prevTone = 0;
-                    var sRad = 30;
-                    var circleSpacing = output.width/numShapes;
+                var origX = 30;
+                var origY = -60;
+                var baseTone = 440;
+                var sRad = 30;
+                var circleSpacing = output.width/numShapes;
                     
-                    for(var i=0; i<numShapes; i++) {
-                        var x = origX + ((i+1)*sRad) + ((i+1)*circleSpacing);
-                        var y = origY - sRad;
-                        aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad);
-                        aSoundShape.setAmplitude(0.1);
-                        aSoundShape.setDefaults((new Date()).getTime());
-                        soundShapes.push(aSoundShape);
-                        console.log("SoundShape:",i,x,y,sRad,baseTone * Math.pow(1.05946,i),circleSpacing);
-                    }
-                    console.log("Made soundShapes:",soundShapes.length);
+                for(var i=0; i<numShapes; i++) {
+                    var x = origX + ((i+1)*sRad) + ((i+1)*circleSpacing);
+                    var y = origY - sRad;
+                    aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad);
+                    aSoundShape.setAmplitude(0.1);
+                    aSoundShape.setDefaults((new Date()).getTime(),false,0.1);
+                    soundShapes.push(aSoundShape);
+                    console.log("SoundShape:",i,x,y,sRad,baseTone * Math.pow(1.05946,soundShapes[i].MinorChord[i]),circleSpacing);
                 }
+                console.log("Made soundShapes:",soundShapes.length);
+            }
             
             startMedia();
             
@@ -90,23 +73,7 @@
                 localStream = stream;
             }
             
-            function detectSoundShape(aSoundShape) {
-                if(aSoundShape.diffSum < aSoundShape.diffSumTol) {
-                    aSoundShape.drawCircle();
-                } else {
-                    aSoundShape.drawCircle();
-                    aSoundShape.setDefaults((new Date()).getTime()+(Math.random()*aSoundShape.padTime));
-                    poppedCount++;
-                    if(poppedCount == numShapes) {
-                        gravity = gravity + gravityOffset;
-                        poppedCount = 0;
-                        console.log("Gravity now: ",gravity);
-                    }
-                }
-            }
-            
             function animate(video,context) {
-                //write video image
                 if (output.width != localVideo.clientWidth) {
                     output.width = localVideo.clientWidth;
                     output.height = localVideo.clientHeight;
@@ -115,43 +82,35 @@
                 }
                 context.drawImage(video,0,0,output.width,output.height);
                 var imgData = context.getImageData(0, 0, output.width,output.height);
-               
-                if(frameCount < 250) {
+             
+                if(frameCount < collectOldDataCount) {
                     oldData = context.getImageData(0, 0, output.width,output.height);
-                    console.log("saving old data");
                 } else {
                     for(var i=0; i<soundShapes.length; i++) {
                         var time = (new Date()).getTime() - soundShapes[i].startTime;
+                        //
                         if(time > 0) {
-                            soundShapes[i].center.y = soundShapes[i].acceleration * gravity * Math.pow(time/1000, 2);
-                            if(soundShapes[i].center.y > (output.height+soundShapes[i].radius)) {
-                                soundShapes[i].setDefaults((new Date()).getTime()+(Math.random()*soundShapes[i].padTime));
-                                poppedCount = poppedCount - 1;
-                                gravity = gravityBase;
-                            }
-                            soundShapes[i].processDiff(imgData,oldData,output.width);
-                            detectSoundShape(soundShapes[i]);
+                            soundShapes[i].updateSoundShape(imgData,oldData,time);
                         }
                     }
                 }
-                requestAnimFrame(function() { animate(video, context); });
-             frameCount++;
+            requestAnimFrame(function() { animate(video, context); });
+            frameCount++;
             }
-            
+        
             function handleUserMediaError(error){
                 console.log('navigator.getUserMedia error: ', error);
             }
+        
             setTimeout(function() { animate(localVideo,oContext); }, 2000);
-    </script>
-            
+        </script>
     </head>
-    
-    <body>
-        <div id='container'>
-            <div id='videos'>
-                <canvas id='output'></canvas>
-                <video id='localVideo' muted  autoplay style='visibility:hidden'></video>
-            </div>
-        </div>
-    </body>
+  <body>
+      <div id='container'>
+          <div id='videos'>
+              <canvas id='output'></canvas>
+              <video id='localVideo' muted  autoplay style='visibility:hidden'></video>
+          </div>
+      </div>
+  </body>
 </html>
