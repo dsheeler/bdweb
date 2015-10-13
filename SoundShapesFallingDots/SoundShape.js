@@ -143,7 +143,6 @@ SoundShape.prototype.PlayTone = function (caller) {
         this.aSineWave = new SineWave(this.audioContext);
         this.aSineWave.setFrequency(this.tone);
         this.aSineWave.setAmplitude(this.amplitude);
-        this.aSineWave.getOutNode().connect(this.audioContext.destination);
         for (var i = 0; i < this.connections.length; i++) {
             this.aSineWave.getOutNode().connect(this.connections[i]);
         }

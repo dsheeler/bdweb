@@ -60,7 +60,7 @@
                         var x = origX + ((i+1)*sRad) + ((i+1)*circleSpacing);
                         var y = origY - sRad;
                         aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad);
-                        aSoundShape.setAmplitude(0.5);
+                        aSoundShape.setAmplitude(0.1);
                         aSoundShape.setDefaults((new Date()).getTime());
                         soundShapes.push(aSoundShape);
                         console.log("SoundShape:",i,x,y,sRad,baseTone * Math.pow(1.05946,i),circleSpacing);
