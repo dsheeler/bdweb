@@ -15,7 +15,7 @@
             var output;
             var localVideo;
             var soundShapes = [];
-            var collectOldDataCount = 180;
+            var collectOldDataCount = 2;
             var oldData = {'data':[]};
             var frameCount = 0;
             var numShapes = 4;
@@ -49,7 +49,12 @@
                     var y = origY - sRad;
                     aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad);
                     aSoundShape.setAmplitude(0.1);
-                    aSoundShape.setDefaults((new Date()).getTime(),false,0.1);
+                    aSoundShape.setMotionIsLinear(true);
+                    aSoundShape.setYVelocity(0.5);
+                    aSoundShape.setAccelIsUniform(false);
+                    aSoundShape.setAcceleration(0.1);
+                    
+                    aSoundShape.setDefaults((new Date()).getTime());
                     soundShapes.push(aSoundShape);
                     console.log("SoundShape:",i,x,y,sRad,baseTone * Math.pow(1.05946,soundShapes[i].MinorChord[i]),circleSpacing);
                 }
@@ -83,19 +88,19 @@
                 context.drawImage(video,0,0,output.width,output.height);
                 var imgData = context.getImageData(0, 0, output.width,output.height);
              
-                if(frameCount < collectOldDataCount) {
+                if(frameCount % collectOldDataCount == 0) {
                     oldData = context.getImageData(0, 0, output.width,output.height);
-                } else {
-                    for(var i=0; i<soundShapes.length; i++) {
-                        var time = (new Date()).getTime() - soundShapes[i].startTime;
-                        //
-                        if(time > 0) {
-                            soundShapes[i].updateSoundShape(imgData,oldData,time);
-                        }
+                }
+                for(var i=0; i<soundShapes.length; i++) {
+                    var time = (new Date()).getTime() - soundShapes[i].startTime;
+                    //
+                    if(time > 0) {
+                        soundShapes[i].updateSoundShape(imgData,oldData,time);
                     }
                 }
-            requestAnimFrame(function() { animate(video, context); });
-            frameCount++;
+            
+                requestAnimFrame(function() { animate(video, context); });
+                frameCount++;
             }
         
             function handleUserMediaError(error){

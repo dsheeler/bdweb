@@ -26,7 +26,7 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.entropyChange = 0.0;
     this.soundShapeIsReady = -1;
     this.diffSum = 0.0;
-    this.diffSumTol = 2250.0;
+    this.diffSumTol = 1250.0;
     this.padTime = 1000.0;
     this.toneSave = 0.0;
     this.amplitude = 0.1;
@@ -41,23 +41,33 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.popMax = 4;
     this.width = 640;
     this.height = 480;
-    this.myColorMap = [];
+    this.myColorMap = ["rgba(127,0,0,0.8)","rgba(255,0,0,0.8)","rgba(127,127,0,0.8)","rgba(127,255,0,0.8)",
+                       "rgba(0,127,0,0.8)","rgba(0,255,0,0.8)","rgba(0,127,127,0.8)","rgba(0,127,255,0.8)",
+                       "rgba(0,0,127,0.8)","rgba(0,0,255,0.8)","rgba(127,0,127,0.8)","rgba(127,0,255,0.8"];
+   // this.myColorMap = ["rgba(127,0,0,0.8)","rgba(255,0,0,0.8)","rgba(255,127,0,0.8)","rgba(255,255,0,0.8)",
+    //                   "rgba(0,127,0,0.8)","rgba(0,127,127,0.8)","rgba(0,255,127,0.8)","rgba(0,255,0,0.8)",
+    //                   "rgba(0,0,127,0.8)","rgba(127,0,127,0.8)","rgba(127,0,255,0.8)","rgba(0,0,255,0.8)"];
+   // this.myColorMap = [];
     this.colorMapBitBase = 2;
     this.circleAlpha = 0.8;
-    this.createColorMap();
+    //this.createColorMap();
+    
+    this.accelIsUniform = false;
+    this.motionIsLinear = false;
+    this.yVelocity = 0.0;
 }
 
 SoundShape.prototype.createColorMap = function() {
-    for(var i = 0; i<this.colorMapBitBase; i++) {
-        for(var j = 0; j<this.colorMapBitBase; j++) {
-            for(var k = 0; k<this.colorMapBitBase; k++) {
-                var idx = k + (j * this.colorMapBitBase) + (i * Math.pow(this.colorMapBitBase,2));
-                //note blue changes fastest red to blue
+    var totalColors = Math.pow(this.colorMapBitBase,3);
+    for(var i = 1; i<this.colorMapBitBase+1; i++) {
+        for(var j = 1; j<this.colorMapBitBase+1; j++) {
+            for(var k = 1; k<this.colorMapBitBase+1; k++) {
+                var idx = (k-1) + ((j-1) * this.colorMapBitBase) + ((i-1) * Math.pow(this.colorMapBitBase,2));
                 var red = Math.floor(255*(k/this.colorMapBitBase));
                 var green = Math.floor(255*(j/this.colorMapBitBase));
                 var blue = Math.floor(255*(i/this.colorMapBitBase));
                 this.myColorMap[idx] = "rgba(" + red + "," + green + "," + blue + "," + this.circleAlpha + ")";
-                //console.log("COLORMAP: ",idx,this.myColorMap[idx]);
+                console.log("COLORMAP: ",idx,this.myColorMap[idx]);
             }
         }
     }
@@ -72,16 +82,28 @@ SoundShape.prototype.setAmplitude = function(amplitude) {
     this.amplitude = amplitude;
 }
 
-SoundShape.prototype.setDefaults = function(sTime,isUniform,accelVal) {
+SoundShape.prototype.setAccelIsUniform = function(isUnifrm) {
+    this.accelIsUniform = isUnifrm;
+}
+
+SoundShape.prototype.setMotionIsLinear = function(isLinear) {
+    this.motionIsLinear = isLinear;
+}
+
+SoundShape.prototype.setYVelocity = function(vel) {
+    this.yVelocity = vel;
+}
+
+SoundShape.prototype.setDefaults = function(sTime) {
     this.center.x = this.xoffset+(Math.random()*(640.0-this.xoffset));
     this.center.y = this.originY;
     this.startTime = sTime;
     this.radius = this.tone/this.radiusDiv;
-    this.setAcceleration(isUniform,accelVal);
+    this.setAcceleration(this.acceleration);
 }
 
-SoundShape.prototype.setAcceleration = function(isUniform,value) {
-    if(isUniform) {
+SoundShape.prototype.setAcceleration = function(value) {
+    if(this.accelIsUniform) {
         this.acceleration = value;
     } else {
         this.acceleration = (Math.random()*value);
@@ -91,14 +113,22 @@ SoundShape.prototype.setAcceleration = function(isUniform,value) {
 SoundShape.prototype.updateCenterWithGravity = function(time) {
     this.center.y = this.acceleration * this.gravity * Math.pow(time/1000,2);
     if(this.center.y > (this.height+this.radius)) {
-        this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime),false,0.05);
+        this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime));
         this.poppedCount = this.poppedCount - 1;
         this.gravity = this.gravityBase;
     }
 }
 
+SoundShape.prototype.updateCenterLinear = function(time) {
+    this.center.y = this.center.y + (this.yVelocity * (time/1000));
+    if(this.center.y > (this.height+this.radius)) {
+        this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime));
+        this.poppedCount = this.poppedCount - 1;
+    }
+}
+
 SoundShape.prototype.popCircle = function() {
-    this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime),false,0.05);
+    this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime));
     this.poppedCount++;
     if(this.poppedCount == this.popMax) {
         this.gravity = this.gravity + this.gravityOffset;
@@ -106,6 +136,16 @@ SoundShape.prototype.popCircle = function() {
     }
 
 }
+
+SoundShape.prototype.updateSoundShape = function(newData,oldData,time) {
+    if(this.motionIsLinear) {
+        this.updateCenterLinear(time);
+    } else {
+        this.updateCenterWithGravity(time);
+    }
+    this.processDiff(newData,oldData);
+}
+
 
 SoundShape.prototype.setCenter = function(p) {
   this.center = p;
@@ -124,7 +164,7 @@ SoundShape.prototype.setRadius = function(r) {
 SoundShape.prototype.drawCircle = function() {
   this.setFillStyle();
   this.drawContext.beginPath();
-  this.drawContext.arc(this.center.x,this.center.y,this.radius,0,2.0*Math.PI);
+    this.drawContext.arc(this.center.x,this.center.y,this.radius,0,2.0*Math.PI);
     //calculate the indx for color map
     var idx = Math.floor((this.center.y/this.height) * (this.myColorMap.length-1));
     if(idx >= 1 && idx < (this.myColorMap.length-1)) {
@@ -134,11 +174,11 @@ SoundShape.prototype.drawCircle = function() {
         linGrad.addColorStop(0, this.myColorMap[idx-1]);
         linGrad.addColorStop(1, this.myColorMap[idx]);
        // linGrad.addColorStop(1, this.myColorMap[idx+1]);
+        this.drawContext.strokeStyle = this.myColorMap[idx];
         this.drawContext.fillStyle = linGrad;
-        this.drawContext.fill();
     } else {
         if(idx == 0) {
-            var linGrad = this.drawContext.createLinearGradient(this.center.x,this.center.y-this.radius,this.center.x,this.center.y+this.radius);
+            var linGrad = this.drawContext.createLinearGradient(this.center.x,this.center.y+this.radius,this.center.x,this.center.y-this.radius);
             linGrad.addColorStop(0, this.myColorMap[idx]);
             linGrad.addColorStop(1, this.myColorMap[idx+1]);
         }
@@ -147,18 +187,14 @@ SoundShape.prototype.drawCircle = function() {
             linGrad.addColorStop(0, this.myColorMap[idx-1]);
             linGrad.addColorStop(1, this.myColorMap[idx]);
         }
+        this.drawContext.strokeStyle = this.myColorMap[idx]
         this.drawContext.fillStyle = linGrad;
-        this.drawContext.fill();
     }
   
-    /*if ((this.frameCount - this.onFrame) < 30) {
-    var percentFull = (30 - (this.frameCount - this.onFrame))/30.0;
-    var percentEmpty = 1 - percentFull;
-    this.drawContext.fillStyle = 'rgba(255,255,255,' + 0.5 + ')';
-    this.drawContext.beginPath();
-    this.drawContext.arc(this.center.x,this.center.y,this.radius*percentFull,0,2.0*Math.PI);
+    this.drawContext.lineWidth = 2.0;
     this.drawContext.fill();
-     }*/
+    this.drawContext.stroke();
+    this.drawContext.closePath();
 }
 
 SoundShape.prototype.setFillStyle = function() {
@@ -209,10 +245,6 @@ SoundShape.prototype.processDiff = function(diffData, oldData) {
     }
  }
 
-SoundShape.prototype.updateSoundShape = function(newData,oldData,time) {
-    this.updateCenterWithGravity(time);
-    this.processDiff(newData,oldData);
-}
 
 SoundShape.prototype.PlayOrPause = function() {
     this.playing ? this.PauseTone() : this.PlayTone();
