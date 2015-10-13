@@ -42,7 +42,6 @@
                             window.setTimeout(callback, 1000 / 60);
                         };
                     })();
-                    startMedia();
                                                 
                     var actxCall = window.webkitAudioContext || window.AudioContext;
                     aContext = new actxCall();
@@ -68,6 +67,8 @@
                     }
                     console.log("Made soundShapes:",soundShapes.length);
                 }
+            
+            startMedia();
             
             function startMedia() {
                 var constraints = {video: true, audio: true};

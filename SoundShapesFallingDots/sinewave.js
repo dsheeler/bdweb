@@ -51,7 +51,7 @@ SineWave.prototype.pause = function() {
     this.gain.gain.cancelScheduledValues(this.context.currentTime);
     this.gain.gain.value = this.amplitude;
     this.gain.gain.setValueAtTime(this.amplitude, 0.001 + this.context.currentTime);
-    this.gain.gain.setTargetAtTime(0, this.context.currentTime+0.01, release);
+    this.gain.gain.setTargetAtTime(0, this.context.currentTime+0.1, release);
     var self = this;
     setTimeout(function() { self.fmosc.stop(0); self.osc.stop(0); }, 10*release*1000);
     this.playing = false;
