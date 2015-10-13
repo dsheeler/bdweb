@@ -3,6 +3,7 @@
 
 //sound shape takes a canvas drawling context and an audio context and x y point
 SoundShape = function(id,cContext, aContext, center, tone, radius) {
+<<<<<<< HEAD
   this.center = center;
   this.radius = radius;
   this.drawContext = cContext;
@@ -30,6 +31,33 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
   this.toneSave = 0.0;
   this.amplitude = 0.5;
 }
+=======
+   this.center = center;
+   this.radius = radius;
+   this.aSineWave = new SineWave(aContext);
+   this.drawContext = cContext;
+   this.audioContext = aContext;
+    this.myId = id;
+   this.frameCount = 0;
+   this.onFrame = 0;
+   this.offFrame = 0;
+   this.Ionian = [];
+   this.Aeolian = [];
+   this.makeScales();
+   this.tone = tone * Math.pow(1.05946,this.Aeolian[id]);
+    this.currentOriginX = 320;
+    this.currentOriginY = 240;
+    
+    this.acceleration = 0.0;
+    this.originX = this.center.x;
+    this.originY = this.center.y;
+    this.startTime = 0;
+    this.entropyChange = 0.0;
+    this.diffSum = 0.0;
+    this.diffSumTol = 2250.0;
+    this.padTime = 1000.0;
+  }
+>>>>>>> 887c9d8dc1b9e5f3fe5e8c2517f847f52c634a86
 
 SoundShape.prototype.setDefaults = function(sTime) {
   this.center.x = this.originX;
@@ -50,10 +78,6 @@ SoundShape.prototype.setTone = function(t) {
 
 SoundShape.prototype.setRadius = function(r) {
   this.radius = r;
-}
-
-SoundShape.prototype.setTol = function(tl) {
-  this.tol = tl;
 }
 
 SoundShape.prototype.drawCircle = function() {
