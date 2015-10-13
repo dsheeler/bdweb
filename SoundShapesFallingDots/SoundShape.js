@@ -41,7 +41,27 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.popMax = 4;
     this.width = 640;
     this.height = 480;
-    
+    this.myColorMap = [];
+    this.colorMapBitBase = 2;
+    this.circleAlpha = 0.8;
+    this.createColorMap();
+}
+
+SoundShape.prototype.createColorMap = function() {
+    for(var i = 0; i<this.colorMapBitBase; i++) {
+        for(var j = 0; j<this.colorMapBitBase; j++) {
+            for(var k = 0; k<this.colorMapBitBase; k++) {
+                var idx = k + (j * this.colorMapBitBase) + (i * Math.pow(this.colorMapBitBase,2));
+                //note blue changes fastest red to blue
+                var red = Math.floor(255*(k/this.colorMapBitBase));
+                var green = Math.floor(255*(j/this.colorMapBitBase));
+                var blue = Math.floor(255*(i/this.colorMapBitBase));
+                this.myColorMap[idx] = "rgba(" + red + "," + green + "," + blue + "," + this.circleAlpha + ")";
+                //console.log("COLORMAP: ",idx,this.myColorMap[idx]);
+            }
+        }
+    }
+    console.log("Create Color Map! NumColors: ",idx+1)
 }
 
 SoundShape.prototype.connect = function(node) {
@@ -71,14 +91,14 @@ SoundShape.prototype.setAcceleration = function(isUniform,value) {
 SoundShape.prototype.updateCenterWithGravity = function(time) {
     this.center.y = this.acceleration * this.gravity * Math.pow(time/1000,2);
     if(this.center.y > (this.height+this.radius)) {
-        this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime),false,0.1);
+        this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime),false,0.05);
         this.poppedCount = this.poppedCount - 1;
         this.gravity = this.gravityBase;
     }
 }
 
 SoundShape.prototype.popCircle = function() {
-    this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime),false,0.1);
+    this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime),false,0.05);
     this.poppedCount++;
     if(this.poppedCount == this.popMax) {
         this.gravity = this.gravity + this.gravityOffset;
@@ -105,15 +125,40 @@ SoundShape.prototype.drawCircle = function() {
   this.setFillStyle();
   this.drawContext.beginPath();
   this.drawContext.arc(this.center.x,this.center.y,this.radius,0,2.0*Math.PI);
-  this.drawContext.fill();
-  if ((this.frameCount - this.onFrame) < 30) {
+    //calculate the indx for color map
+    var idx = Math.floor((this.center.y/this.height) * (this.myColorMap.length-1));
+    if(idx >= 1 && idx < (this.myColorMap.length-1)) {
+        //var grdRadial = this.drawContext.createRadialGradient(this.center.x, this.center.y,this.radius, 0, this.center.x/5, this.center.y+(this.center.y*0.2));
+        var linGrad = this.drawContext.createLinearGradient(this.center.x,this.center.y-this.radius,this.center.x,this.center.y+this.radius);
+      //  console.log("Color string!! ",idx,this.myColorMap[idx])
+        linGrad.addColorStop(0, this.myColorMap[idx-1]);
+        linGrad.addColorStop(1, this.myColorMap[idx]);
+       // linGrad.addColorStop(1, this.myColorMap[idx+1]);
+        this.drawContext.fillStyle = linGrad;
+        this.drawContext.fill();
+    } else {
+        if(idx == 0) {
+            var linGrad = this.drawContext.createLinearGradient(this.center.x,this.center.y-this.radius,this.center.x,this.center.y+this.radius);
+            linGrad.addColorStop(0, this.myColorMap[idx]);
+            linGrad.addColorStop(1, this.myColorMap[idx+1]);
+        }
+        if(idx == this.myColorMap.length-1) {
+            var linGrad = this.drawContext.createLinearGradient(this.center.x,this.center.y-this.radius,this.center.x,this.center.y+this.radius);
+            linGrad.addColorStop(0, this.myColorMap[idx-1]);
+            linGrad.addColorStop(1, this.myColorMap[idx]);
+        }
+        this.drawContext.fillStyle = linGrad;
+        this.drawContext.fill();
+    }
+  
+    /*if ((this.frameCount - this.onFrame) < 30) {
     var percentFull = (30 - (this.frameCount - this.onFrame))/30.0;
     var percentEmpty = 1 - percentFull;
     this.drawContext.fillStyle = 'rgba(255,255,255,' + 0.5 + ')';
     this.drawContext.beginPath();
     this.drawContext.arc(this.center.x,this.center.y,this.radius*percentFull,0,2.0*Math.PI);
     this.drawContext.fill();
-  }
+     }*/
 }
 
 SoundShape.prototype.setFillStyle = function() {
