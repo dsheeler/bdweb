@@ -29,7 +29,7 @@
                 //impossible to do anything other than 2d
                 var numRows = 1;
                 var numCols = 1;
-                
+                var masterBus = 0;
                 function init() {
                     localVideo = document.querySelector('#localVideo');;
                     output = document.querySelector('#output');
@@ -46,6 +46,7 @@
                                                 
                     var actxCall = window.webkitAudioContext || window.AudioContext;
                     aContext = new actxCall();
+                    
                     var cRad = 180;
                     var numShapes = 4;
                     var unit = 360/numShapes;
@@ -55,10 +56,12 @@
                     var prevTone = 0;
                     var sRad = 30;
                     var circleSpacing = output.width/numShapes;
+                    
                     for(var i=0; i<numShapes; i++) {
                         var x = origX + ((i+1)*sRad) + ((i+1)*circleSpacing);
                         var y = origY - sRad;
                         aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad);
+                        aSoundShape.setAmplitude(0.5);
                         aSoundShape.setDefaults((new Date()).getTime());
                         soundShapes.push(aSoundShape);
                         console.log("SoundShape:",i,x,y,sRad,baseTone * Math.pow(1.05946,i),circleSpacing);
@@ -84,9 +87,7 @@
             function detectSoundShape(aSoundShape) {
                 if(aSoundShape.diffSum < aSoundShape.diffSumTol) {
                     aSoundShape.drawCircle();
-                   // aSoundShape.PauseTone();
                 } else {
-                    aSoundShape.PlayTone();
                     aSoundShape.drawCircle();
                     aSoundShape.setDefaults((new Date()).getTime()+(Math.random()*aSoundShape.padTime));
                 }
@@ -111,7 +112,6 @@
                     for(var i=0; i<soundShapes.length; i++) {
                         var time = (new Date()).getTime() - soundShapes[i].startTime;
                         if(time > 0) {
-                    soundShapes[i].PauseTone();
                             soundShapes[i].center.y = soundShapes[i].acceleration * gravity * Math.pow(time/1000, 2);
                             if(soundShapes[i].center.y > (output.height+soundShapes[i].radius)) {
                                 soundShapes[i].setDefaults((new Date()).getTime()+(Math.random()*soundShapes[i].padTime));
@@ -121,10 +121,7 @@
                         }
                     }
                 }
-             //   lastTime = time;
                 requestAnimFrame(function() { animate(video, context); });
-            
-             
              frameCount++;
             }
             

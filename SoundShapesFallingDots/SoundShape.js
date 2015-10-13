@@ -3,12 +3,11 @@
 
 //sound shape takes a canvas drawling context and an audio context and x y point
 SoundShape = function(id,cContext, aContext, center, tone, radius) {
-<<<<<<< HEAD
   this.center = center;
   this.radius = radius;
   this.drawContext = cContext;
   this.audioContext = aContext;
-  this.aSineWave = new SineWave(this.audioContext);
+ // this.aSineWave = new SineWave(this.audioContext);
   this.myId = id;
   this.frameCount = 0;
   this.onFrame = 0;
@@ -29,35 +28,17 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
   this.diffSumTol = 2250.0;
   this.padTime = 1000.0;
   this.toneSave = 0.0;
-  this.amplitude = 0.5;
+  this.amplitude = 0.1;
+  this.connections = [];
 }
-=======
-   this.center = center;
-   this.radius = radius;
-   this.aSineWave = new SineWave(aContext);
-   this.drawContext = cContext;
-   this.audioContext = aContext;
-    this.myId = id;
-   this.frameCount = 0;
-   this.onFrame = 0;
-   this.offFrame = 0;
-   this.Ionian = [];
-   this.Aeolian = [];
-   this.makeScales();
-   this.tone = tone * Math.pow(1.05946,this.Aeolian[id]);
-    this.currentOriginX = 320;
-    this.currentOriginY = 240;
-    
-    this.acceleration = 0.0;
-    this.originX = this.center.x;
-    this.originY = this.center.y;
-    this.startTime = 0;
-    this.entropyChange = 0.0;
-    this.diffSum = 0.0;
-    this.diffSumTol = 2250.0;
-    this.padTime = 1000.0;
-  }
->>>>>>> 887c9d8dc1b9e5f3fe5e8c2517f847f52c634a86
+
+SoundShape.prototype.connect = function(node) {
+    this.connections.push(node);
+}
+
+SoundShape.prototype.setAmplitude = function(amplitude) {
+    this.amplitude = amplitude;
+}
 
 SoundShape.prototype.setDefaults = function(sTime) {
   this.center.x = this.originX;
@@ -124,9 +105,17 @@ SoundShape.prototype.processDiff = function(diffData, oldData, width) {
     
     if(sum == 0 || isNaN(sum)) {
         this.diffSum = 0.0;
+        if(this.playing) {
+            this.PauseTone(this);
+        }
         return;
     } else {
         this.diffSum = sum;
+        if(this.diffSum > this.diffSumTol) {
+            if(!this.playing) {
+                this.PlayTone(this);
+            }
+        }
     }
  }
 
@@ -147,18 +136,34 @@ var dist = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
   }
 }
 
-SoundShape.prototype.PlayTone = function () {
- // this.aSineWave = new SineWave(this.audioContext);
-  this.aSineWave.setFrequency(this.tone);
-  this.aSineWave.setAmplitude(this.amplitude);
-  this.aSineWave.play();
-  this.playing = true;
+SoundShape.prototype.PlayTone = function (caller) {
+    if(!this.playing) {
+        this.playing = true;
+        this.player = caller;
+        this.aSineWave = new SineWave(this.audioContext);
+        this.aSineWave.setFrequency(this.tone);
+        this.aSineWave.setAmplitude(this.amplitude);
+        for (var i = 0; i < this.connections.length; i++) {
+            this.aSineWave.getOutNode().connect(this.connections[i]);
+        }
+        this.aSineWave.play();
+        this.setFillStyle();
+        this.onFrame = this.frameCount;
+        console.log("Called PlayTone",this.tone,this.amplitude);
+    }
 }
 
-SoundShape.prototype.PauseTone = function () {
-//     this.aSineWave.pause();
-     this.playing = false;
-}
+SoundShape.prototype.PauseTone = function (caller) {
+    if(this.playing) {
+        if(this.player == caller) {
+            this.playing = false;
+            this.setFillStyle();
+            this.offFrame = this.frameCount;
+            this.aSineWave.pause();
+            console.log("Called PauseTone");
+        }
+    }
+ }
 
 SoundShape.prototype.makeScales = function () {
 
@@ -180,5 +185,4 @@ SoundShape.prototype.makeScales = function () {
    this.Aeolian[6] = 10;
    this.Aeolian[7] = 12;
 }
-
 
