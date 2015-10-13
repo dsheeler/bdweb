@@ -30,6 +30,9 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
   this.toneSave = 0.0;
   this.amplitude = 0.1;
   this.connections = [];
+  this.xoffset = 65.0;
+  this.popped = false;
+  this.fellThrough = false;
 }
 
 SoundShape.prototype.connect = function(node) {
@@ -41,10 +44,11 @@ SoundShape.prototype.setAmplitude = function(amplitude) {
 }
 
 SoundShape.prototype.setDefaults = function(sTime) {
-  this.center.x = this.originX;
+  this.center.x = this.xoffset+(Math.random()*(640.0-this.xoffset));
   this.center.y = this.originY;
   this.acceleration = (Math.random()*0.05)+0.05;
   this.startTime = sTime;
+  this.radius = this.tone/20.0;
 }
 
 SoundShape.prototype.setCenter = function(p) {
@@ -149,7 +153,6 @@ SoundShape.prototype.PlayTone = function (caller) {
         this.aSineWave.play();
         this.setFillStyle();
         this.onFrame = this.frameCount;
-        console.log("Called PlayTone",this.tone,this.amplitude);
     }
 }
 
@@ -160,7 +163,6 @@ SoundShape.prototype.PauseTone = function (caller) {
             this.setFillStyle();
             this.offFrame = this.frameCount;
             this.aSineWave.pause();
-            console.log("Called PauseTone");
         }
     }
  }

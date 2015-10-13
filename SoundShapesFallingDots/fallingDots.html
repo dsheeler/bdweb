@@ -26,6 +26,11 @@
                 var oldDataCheck = -1;
                 var frameCount = 0;
                 var initDraw = 0;
+                var gravityBase = 200;
+                var gravity = gravityBase;
+                var gravityOffset = 75.0;
+                var poppedCount = 0;
+                var numShapes = 4;
                 //impossible to do anything other than 2d
                 var numRows = 1;
                 var numCols = 1;
@@ -47,7 +52,7 @@
                     aContext = new actxCall();
                     
                     var cRad = 180;
-                    var numShapes = 4;
+                   // var numShapes = 4;
                     var unit = 360/numShapes;
                     var origX = 30;
                     var origY = -60;
@@ -91,6 +96,12 @@
                 } else {
                     aSoundShape.drawCircle();
                     aSoundShape.setDefaults((new Date()).getTime()+(Math.random()*aSoundShape.padTime));
+                    poppedCount++;
+                    if(poppedCount == numShapes) {
+                        gravity = gravity + gravityOffset;
+                        poppedCount = 0;
+                        console.log("Gravity now: ",gravity);
+                    }
                 }
             }
             
@@ -105,7 +116,6 @@
                 context.drawImage(video,0,0,output.width,output.height);
                 var imgData = context.getImageData(0, 0, output.width,output.height);
                
-               var gravity = 200;
                 if(frameCount < 250) {
                     oldData = context.getImageData(0, 0, output.width,output.height);
                     console.log("saving old data");
@@ -116,6 +126,8 @@
                             soundShapes[i].center.y = soundShapes[i].acceleration * gravity * Math.pow(time/1000, 2);
                             if(soundShapes[i].center.y > (output.height+soundShapes[i].radius)) {
                                 soundShapes[i].setDefaults((new Date()).getTime()+(Math.random()*soundShapes[i].padTime));
+                                poppedCount = poppedCount - 1;
+                                gravity = gravityBase;
                             }
                             soundShapes[i].processDiff(imgData,oldData,output.width);
                             detectSoundShape(soundShapes[i]);
