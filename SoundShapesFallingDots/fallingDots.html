@@ -3,10 +3,13 @@
   <head>
     <title>Web Fun</title>
       <meta charset="utf-8">
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+        <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+        <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+        <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
         <script type="text/javascript" src="adapter.js"></script>
         <script type="text/javascript" src="sinewave.js"></script>
         <script type="text/javascript" src="SoundShape.js"></script>
+        <link rel="stylesheet" href="ss.css">
         <script>
                 
             window.onload = init;
@@ -19,7 +22,8 @@
             var oldData = {'data':[]};
             var frameCount = 0;
             var numShapes = 4;
-            
+            var drawDots = false;
+            var useMotionType = 0; //0 = static, 1 = linear velocity, 2 = accel constant, 3 = accel change
             function init() {
                 localVideo = document.querySelector('#localVideo');;
                 output = document.querySelector('#output');
@@ -91,6 +95,7 @@
                 if(frameCount % collectOldDataCount == 0) {
                     oldData = context.getImageData(0, 0, output.width,output.height);
                 }
+                if(drawDots) {
                 for(var i=0; i<soundShapes.length; i++) {
                     var time = (new Date()).getTime() - soundShapes[i].startTime;
                     //
@@ -98,7 +103,7 @@
                         soundShapes[i].updateSoundShape(imgData,oldData,time);
                     }
                 }
-            
+                }
                 requestAnimFrame(function() { animate(video, context); });
                 frameCount++;
             }
@@ -107,8 +112,71 @@
                 console.log('navigator.getUserMedia error: ', error);
             }
         
+            function setDrawDots() {
+                if(!drawDots) {
+                    drawDots = true;
+                } else {
+                    drawDots = false;
+                }
+            }
+            function setMotionType(mType) {
+                if(mType == 1) {
+                    for(var i=0; i<soundShapes.length; i++) {
+                        soundShapes[i].setMotionIsLinear(true);
+                        console.log("Set motion to linear!");
+                    }
+                }
+                if(mType == 2) {
+                    for(var i=0; i<soundShapes.length; i++) {
+                        soundShapes[i].setMotionIsLinear(false);
+                        soundShapes[i].setAccelIsUniform(true);
+                    }
+                }
+                if(mType == 3) {
+                    for(var i=0; i<soundShapes.length; i++) {
+                        soundShapes[i].setMotionIsLinear(false);
+                        soundShapes[i].setAccelIsUniform(false);
+                    }
+                }
+            }
+        
+            function changeYVelocity(vel) {
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].setYVelocity(vel);
+                }
+            }
+        
             setTimeout(function() { animate(localVideo,oContext); }, 2000);
         </script>
+        
+        <script>
+            $(function() {
+              $("input[type=submit]").button().click(function( event ) { setDrawDots(); })
+            });
+        </script>
+        <script>
+            $(function() {
+              $("#motionType").selectmenu({change:function(event,data){setMotionType(data.item.value);}});
+            });
+        </script>
+        <script>
+            $(function() {
+             
+              $( "#velocity_slider" ).slider({
+                range: false,
+                min: 0.1,
+                max: 10.0,
+                step: 0.1,
+                value: 0.5,
+                slide: function( event, ui ) {
+                $( "#velocity" ).val( ui.value );
+                changeYVelocity(ui.value);
+                }
+              });
+              
+              $( "#velocity" ).val( $( "#velocity_slider" ).slider( "value" ) );
+              });
+            </script>
     </head>
   <body>
       <div id='container'>
@@ -117,5 +185,34 @@
               <video id='localVideo' muted  autoplay style='visibility:hidden'></video>
           </div>
       </div>
+      <div>
+          <input type="submit" value="Start/Stop">
+      </div>
+      <div>
+          <style>
+          label {
+          display: block;
+          margin: 20px 0 0 0;
+          }
+          select {
+          width: 200px;
+          }
+          </style>
+          <form action="#">
+          <label for="motionType">Motion Type:</label>
+          <select name="motionType" id="motionType">
+              <option value="0">Static</option>
+              <option value="1">Linear</option>
+              <option value="2">Const Accel</option>
+              <option value="3">Change Accel</option>
+          </select>
+          </form>
+      </div>
+      <p>
+      <label for="velocity">Linear Velocity:</label>
+      <input type="text" id="velocity" readonly style="border:0; color:#f6931f; font-weight:bold;">
+          </p>
+      <div id="velocity_slider"></div>
+          
   </body>
 </html>

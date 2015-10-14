@@ -15,6 +15,7 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.Aeolian = [];
     this.MajorChord = [];
     this.MinorChord = [];
+    this.SequenceOne = [];
     this.makeScales();
     this.tone = tone * Math.pow(1.05946,this.Aeolian[id]);
     this.currentOriginX = 320;
@@ -26,7 +27,7 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.entropyChange = 0.0;
     this.soundShapeIsReady = -1;
     this.diffSum = 0.0;
-    this.diffSumTol = 1250.0;
+    this.diffSumTol = 750.0;
     this.padTime = 1000.0;
     this.toneSave = 0.0;
     this.amplitude = 0.1;
@@ -41,37 +42,11 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.popMax = 4;
     this.width = 640;
     this.height = 480;
-    this.myColorMap = ["rgba(127,0,0,0.8)","rgba(255,0,0,0.8)","rgba(127,127,0,0.8)","rgba(127,255,0,0.8)",
-                       "rgba(0,127,0,0.8)","rgba(0,255,0,0.8)","rgba(0,127,127,0.8)","rgba(0,127,255,0.8)",
-                       "rgba(0,0,127,0.8)","rgba(0,0,255,0.8)","rgba(127,0,127,0.8)","rgba(127,0,255,0.8"];
-   // this.myColorMap = ["rgba(127,0,0,0.8)","rgba(255,0,0,0.8)","rgba(255,127,0,0.8)","rgba(255,255,0,0.8)",
-    //                   "rgba(0,127,0,0.8)","rgba(0,127,127,0.8)","rgba(0,255,127,0.8)","rgba(0,255,0,0.8)",
-    //                   "rgba(0,0,127,0.8)","rgba(127,0,127,0.8)","rgba(127,0,255,0.8)","rgba(0,0,255,0.8)"];
-   // this.myColorMap = [];
-    this.colorMapBitBase = 2;
-    this.circleAlpha = 0.8;
-    //this.createColorMap();
     
     this.accelIsUniform = false;
     this.motionIsLinear = false;
     this.yVelocity = 0.0;
-}
-
-SoundShape.prototype.createColorMap = function() {
-    var totalColors = Math.pow(this.colorMapBitBase,3);
-    for(var i = 1; i<this.colorMapBitBase+1; i++) {
-        for(var j = 1; j<this.colorMapBitBase+1; j++) {
-            for(var k = 1; k<this.colorMapBitBase+1; k++) {
-                var idx = (k-1) + ((j-1) * this.colorMapBitBase) + ((i-1) * Math.pow(this.colorMapBitBase,2));
-                var red = Math.floor(255*(k/this.colorMapBitBase));
-                var green = Math.floor(255*(j/this.colorMapBitBase));
-                var blue = Math.floor(255*(i/this.colorMapBitBase));
-                this.myColorMap[idx] = "rgba(" + red + "," + green + "," + blue + "," + this.circleAlpha + ")";
-                console.log("COLORMAP: ",idx,this.myColorMap[idx]);
-            }
-        }
-    }
-    console.log("Create Color Map! NumColors: ",idx+1)
+    this.toneToPlay = this.tone;
 }
 
 SoundShape.prototype.connect = function(node) {
@@ -165,32 +140,12 @@ SoundShape.prototype.drawCircle = function() {
   this.setFillStyle();
   this.drawContext.beginPath();
     this.drawContext.arc(this.center.x,this.center.y,this.radius,0,2.0*Math.PI);
-    //calculate the indx for color map
-    var idx = Math.floor((this.center.y/this.height) * (this.myColorMap.length-1));
-    if(idx >= 1 && idx < (this.myColorMap.length-1)) {
-        //var grdRadial = this.drawContext.createRadialGradient(this.center.x, this.center.y,this.radius, 0, this.center.x/5, this.center.y+(this.center.y*0.2));
-        var linGrad = this.drawContext.createLinearGradient(this.center.x,this.center.y-this.radius,this.center.x,this.center.y+this.radius);
-      //  console.log("Color string!! ",idx,this.myColorMap[idx])
-        linGrad.addColorStop(0, this.myColorMap[idx-1]);
-        linGrad.addColorStop(1, this.myColorMap[idx]);
-       // linGrad.addColorStop(1, this.myColorMap[idx+1]);
-        this.drawContext.strokeStyle = this.myColorMap[idx];
-        this.drawContext.fillStyle = linGrad;
-    } else {
-        if(idx == 0) {
-            var linGrad = this.drawContext.createLinearGradient(this.center.x,this.center.y+this.radius,this.center.x,this.center.y-this.radius);
-            linGrad.addColorStop(0, this.myColorMap[idx]);
-            linGrad.addColorStop(1, this.myColorMap[idx+1]);
-        }
-        if(idx == this.myColorMap.length-1) {
-            var linGrad = this.drawContext.createLinearGradient(this.center.x,this.center.y-this.radius,this.center.x,this.center.y+this.radius);
-            linGrad.addColorStop(0, this.myColorMap[idx-1]);
-            linGrad.addColorStop(1, this.myColorMap[idx]);
-        }
-        this.drawContext.strokeStyle = this.myColorMap[idx]
-        this.drawContext.fillStyle = linGrad;
-    }
-  
+    var linGrad = this.drawContext.createLinearGradient(0,0,0,this.height);
+    linGrad.addColorStop(0, "rgba(255,0,0,0.8)");
+    linGrad.addColorStop(0.5,"rgba(0,255,0,0.8)");
+    linGrad.addColorStop(1, "rgba(0,0,255,0.8)");
+    this.drawContext.strokeStyle = "black";
+    this.drawContext.fillStyle = linGrad;
     this.drawContext.lineWidth = 2.0;
     this.drawContext.fill();
     this.drawContext.stroke();
@@ -263,18 +218,23 @@ var dist = Math.sqrt((xDiff*xDiff)+(yDiff*yDiff));
   }
 }
 
+SoundShape.prototype.setToneByYLocation = function() {
+    this.toneToPlay = this.tone * Math.pow(1.05946,Math.floor((this.center.y/this.height)*(this.SequenceOne.length-1)));
+}
+
 SoundShape.prototype.PlayTone = function (caller) {
     if(!this.playing) {
         this.playing = true;
         this.player = caller;
         this.aSineWave = new SineWave(this.audioContext);
-        this.aSineWave.setFrequency(this.tone);
+        this.setToneByYLocation();
+        this.aSineWave.setFrequency(this.toneToPlay);
         this.aSineWave.setAmplitude(this.amplitude);
         for (var i = 0; i < this.connections.length; i++) {
             this.aSineWave.getOutNode().connect(this.connections[i]);
         }
         this.aSineWave.play();
-        this.setFillStyle();
+        //this.setFillStyle();
         this.onFrame = this.frameCount;
     }
 }
@@ -283,7 +243,7 @@ SoundShape.prototype.PauseTone = function (caller) {
     if(this.playing) {
         if(this.player == caller) {
             this.playing = false;
-            this.setFillStyle();
+            //this.setFillStyle();
             this.offFrame = this.frameCount;
             this.aSineWave.pause();
         }
@@ -319,6 +279,13 @@ SoundShape.prototype.makeScales = function () {
     this.MinorChord[1] = 3;
     this.MinorChord[2] = 7;
     this.MinorChord[3] = 12;
+    
+    this.SequenceOne[0] = 0;
+    this.SequenceOne[1] = 4;
+    this.SequenceOne[2] = 5;
+    this.SequenceOne[3] = 7;
+    this.SequenceOne[4] = 11;
+    this.SequenceOne[5] = 12;
     
 }
 
