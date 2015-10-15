@@ -55,12 +55,11 @@
                     aSoundShape.setAmplitude(0.1);
                     aSoundShape.setMotionIsLinear(true);
                     aSoundShape.setYVelocity(0.5);
-                    aSoundShape.setAccelIsUniform(false);
-                    aSoundShape.setAcceleration(0.1);
+                    aSoundShape.setGravity(200.0);
                     
                     aSoundShape.setDefaults((new Date()).getTime());
                     soundShapes.push(aSoundShape);
-                    console.log("SoundShape:",i,x,y,sRad,baseTone * Math.pow(1.05946,soundShapes[i].MinorChord[i]),circleSpacing);
+                    console.log("SoundShape:",i,x,y,sRad,baseTone * Math.pow(1.05946,soundShapes[i].SequenceOne[i]),circleSpacing);
                 }
                 console.log("Made soundShapes:",soundShapes.length);
             }
@@ -96,13 +95,12 @@
                     oldData = context.getImageData(0, 0, output.width,output.height);
                 }
                 if(drawDots) {
-                for(var i=0; i<soundShapes.length; i++) {
-                    var time = (new Date()).getTime() - soundShapes[i].startTime;
-                    //
-                    if(time > 0) {
-                        soundShapes[i].updateSoundShape(imgData,oldData,time);
+                    for(var i=0; i<soundShapes.length; i++) {
+                        var time = (new Date()).getTime() - soundShapes[i].startTime;
+                        if(time > 0) {
+                            soundShapes[i].updateSoundShape(imgData,oldData,time);
+                        }
                     }
-                }
                 }
                 requestAnimFrame(function() { animate(video, context); });
                 frameCount++;
@@ -120,22 +118,30 @@
                 }
             }
             function setMotionType(mType) {
+                if(mType == 0) {
+                    $( "#velocity_slider").hide();
+                    $( "#gravity_slider").hide();
+                    $( "#velocity").hide();
+                    $( "#gravity" ).hide();
+                }
                 if(mType == 1) {
+                    $( "#velocity_slider").show();
+                    $( "#gravity_slider").hide();
+                    $( "#velocity").show();
+                    $( "#gravity" ).hide();
                     for(var i=0; i<soundShapes.length; i++) {
                         soundShapes[i].setMotionIsLinear(true);
                         console.log("Set motion to linear!");
                     }
                 }
                 if(mType == 2) {
+                    $( "#velocity_slider").hide();
+                    $( "#gravity_slider").show();
+                    $( "#velocity").hide();
+                    $( "#gravity" ).show();
                     for(var i=0; i<soundShapes.length; i++) {
                         soundShapes[i].setMotionIsLinear(false);
-                        soundShapes[i].setAccelIsUniform(true);
-                    }
-                }
-                if(mType == 3) {
-                    for(var i=0; i<soundShapes.length; i++) {
-                        soundShapes[i].setMotionIsLinear(false);
-                        soundShapes[i].setAccelIsUniform(false);
+                        //soundShapes[i].setAccelIsUniform(true);
                     }
                 }
             }
@@ -146,22 +152,82 @@
                 }
             }
         
+            function changeGravity(gr) {
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].setGravity(gr);
+                }
+            }
+
+            function setRandomizeXPos() {
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].randomizeXStartPos ?
+                    soundShapes[i].setRandomizeXPos(false):
+                    soundShapes[i].setRandomizeXPos(true);
+                }
+            }
+        
+            function setRandomizeYPos() {
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].randomizeYStartPos ?
+                    soundShapes[i].setRandomizeYPos(false):
+                    soundShapes[i].setRandomizeYPos(true);
+                }
+            }
+
+            function setRandomizeYVel() {
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].setYVelocity(soundShapes[i].yVelocity*(Math.random()*2.0));
+                }
+            }
+        
+            function setRandomizeGravity() {
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].setGravity(soundShapes[i].gravity*(Math.random()*2.0));
+                }
+            }
+
+            function setRandomizeRestartTime() {
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].randomizeRestartTime ?
+                    soundShapes[i].setRandomizeRestartTime(false):
+                    soundShapes[i].setRandomizeRestartTime(true);
+                }
+            }
+
             setTimeout(function() { animate(localVideo,oContext); }, 2000);
         </script>
-        
         <script>
+            //stop/start button
             $(function() {
               $("input[type=submit]").button().click(function( event ) { setDrawDots(); })
             });
-        </script>
-        <script>
+            //randomize xpos toggle
+            $(function() {
+              $("#randXPos").button().click(function( event ) { setRandomizeXPos(); })
+            });
+            //randomize ypos toggle
+            $(function() {
+              $("#randYPos").button().click(function( event ) { setRandomizeYPos(); })
+            });
+            //randomize yvel toggle
+            $(function() {
+              $("#randYVel").button().click(function( event) { setRandomizeYVel(); })
+            });
+            //randomize yaccel toggle
+            $(function() {
+              $("#randYAccel").button().click(function( event ) { setRandomizeGravity(); })
+            });
+            //randomize restart time
+            $(function() {
+              $("#randSTime").button().click(function( event ) { setRandomizeRestartTime(); })
+            });
+
+            //motion type selection
             $(function() {
               $("#motionType").selectmenu({change:function(event,data){setMotionType(data.item.value);}});
             });
-        </script>
-        <script>
+            //velocity slider
             $(function() {
-             
               $( "#velocity_slider" ).slider({
                 range: false,
                 min: 0.1,
@@ -173,10 +239,24 @@
                 changeYVelocity(ui.value);
                 }
               });
-              
               $( "#velocity" ).val( $( "#velocity_slider" ).slider( "value" ) );
+            });
+            //Gravity slider
+            $(function() {
+              $( "#gravity_slider" ).slider({
+                    range: false,
+                    min: 5.0,
+                    max: 500.0,
+                    step: 5.0,
+                    value: 25,
+                    slide: function( event, ui ) {
+                    $( "#gravity" ).val( ui.value );
+                    changeGravity(ui.value);
+                    }
+                });
+                $( "#gravity" ).val( $( "#gravity_slider" ).slider( "value" ) );
               });
-            </script>
+        </script>
     </head>
   <body>
       <div id='container'>
@@ -187,6 +267,15 @@
       </div>
       <div>
           <input type="submit" value="Start/Stop">
+      </div>
+      <div>
+          <table>
+              <td><input type="checkbox" id="randXPos"><label for="randXPos">RandXPos</label></td>
+              <td><input type="checkbox" id="randYPos"><label for="randYPos">RandYPos</label></td>
+              <td><input type="checkbox" id="randYVel"><label for="randYVel">RandYVel</label></td>
+              <td><input type="checkbox" id="randYAccel"><label for="randYAccel">RandYAccel</label></td>
+              <td><input type="checkbox" id="randSTime"><label for="randSTime">RandSTime</label></td>
+          </table>
       </div>
       <div>
           <style>
@@ -202,17 +291,21 @@
           <label for="motionType">Motion Type:</label>
           <select name="motionType" id="motionType">
               <option value="0">Static</option>
-              <option value="1">Linear</option>
-              <option value="2">Const Accel</option>
-              <option value="3">Change Accel</option>
+              <option value="1" selected>Linear</option>
+              <option value="2">Gravity</option>
           </select>
           </form>
       </div>
       <p>
-      <label for="velocity">Linear Velocity:</label>
+      <label for="velocity" class="hideVelocity">Linear Velocity:</label>
       <input type="text" id="velocity" readonly style="border:0; color:#f6931f; font-weight:bold;">
-          </p>
+      </p>
       <div id="velocity_slider"></div>
+      <p>
+      <label for="gravity" class="hideGravity">Gravity:</label>
+      <input type="text" id="gravity" readonly style="border:0; color:#f6931f; font-weight:bold;">
+          </p>
+          <div id="gravity_slider"></div>
           
   </body>
 </html>

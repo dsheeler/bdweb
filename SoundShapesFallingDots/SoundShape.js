@@ -20,7 +20,6 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.tone = tone * Math.pow(1.05946,this.Aeolian[id]);
     this.currentOriginX = 320;
     this.currentOriginY = 240;
-    this.acceleration = 0.0;
     this.originX = this.center.x;
     this.originY = this.center.y;
     this.startTime = 0;
@@ -28,37 +27,52 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.soundShapeIsReady = -1;
     this.diffSum = 0.0;
     this.diffSumTol = 750.0;
-    this.padTime = 1000.0;
+    
     this.toneSave = 0.0;
     this.amplitude = 0.1;
     this.connections = [];
     this.xoffset = 65.0;
-    this.radiusDivBase = 20.0;
-    this.radiusDiv = this.radiusDivBase;
-    this.gravityBase = 200;
-    this.gravity = this.gravityBase;
-    this.gravityOffset = 75.0;
+    this.radiusDiv = 20.0;
+    
     this.poppedCount = 0;
     this.popMax = 4;
     this.width = 640;
     this.height = 480;
     
-    this.accelIsUniform = false;
     this.motionIsLinear = false;
     this.yVelocity = 0.0;
+    this.yVelocitySave = this.yVelocity;
+    this.gravity = 200.0;
+    this.gravitySave = this.gravity;
+    
     this.toneToPlay = this.tone;
+    
+    this.restartTime = 1000.0;
+    this.randomizeRestartTime = false;
+    
+    this.randomizeXStartPos = false;
+    this.randomizeYStartPos = false;
+    this.adjustRadiusByTone = false;
 }
 
 SoundShape.prototype.connect = function(node) {
     this.connections.push(node);
 }
 
-SoundShape.prototype.setAmplitude = function(amplitude) {
-    this.amplitude = amplitude;
+SoundShape.prototype.setRandomizeXPos = function(rposx) {
+    this.randomizeXStartPos = rposx;
 }
 
-SoundShape.prototype.setAccelIsUniform = function(isUnifrm) {
-    this.accelIsUniform = isUnifrm;
+SoundShape.prototype.setRandomizeYPos = function(rposy) {
+    this.randomizeYStartPos = rposy;
+}
+
+SoundShape.prototype.setRandomizeRestartTime = function(rTime) {
+    this.randomizeRestartTime = rTime;
+}
+
+SoundShape.prototype.setAmplitude = function(amplitude) {
+    this.amplitude = amplitude;
 }
 
 SoundShape.prototype.setMotionIsLinear = function(isLinear) {
@@ -66,44 +80,49 @@ SoundShape.prototype.setMotionIsLinear = function(isLinear) {
 }
 
 SoundShape.prototype.setYVelocity = function(vel) {
+    this.yVelocitySave = this.yVelocity;
     this.yVelocity = vel;
 }
 
 SoundShape.prototype.setDefaults = function(sTime) {
-    this.center.x = this.xoffset+(Math.random()*(640.0-this.xoffset));
+    this.randomizeXStartPos ?
+    this.center.x = this.xoffset+(Math.random()*(this.width-this.xoffset)):
+    this.center.x = this.originX;
     this.center.y = this.originY;
     this.startTime = sTime;
-    this.radius = this.tone/this.radiusDiv;
-    this.setAcceleration(this.acceleration);
+    if(this.adjustRadiusByTone)
+        this.radius = this.tone/this.radiusDiv;
 }
 
-SoundShape.prototype.setAcceleration = function(value) {
-    if(this.accelIsUniform) {
-        this.acceleration = value;
-    } else {
-        this.acceleration = (Math.random()*value);
-    }
+SoundShape.prototype.setGravity = function(grav) {
+    this.gravitySave = this.gravity;
+    this.gravity = grav;
 }
 
 SoundShape.prototype.updateCenterWithGravity = function(time) {
-    this.center.y = this.acceleration * this.gravity * Math.pow(time/1000,2);
+    this.center.y = 0.5 * this.gravity * Math.pow(time/1000,2);
     if(this.center.y > (this.height+this.radius)) {
-        this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime));
+        this.randomizeRestartTime ?
+        this.setDefaults((new Date()).getTime()+(Math.random()*this.restartTime)):
+        this.setDefaults((new Date()).getTime()+this.restartTime);
         this.poppedCount = this.poppedCount - 1;
-        this.gravity = this.gravityBase;
     }
 }
 
 SoundShape.prototype.updateCenterLinear = function(time) {
     this.center.y = this.center.y + (this.yVelocity * (time/1000));
     if(this.center.y > (this.height+this.radius)) {
-        this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime));
+        this.randomizeRestartTime ?
+        this.setDefaults((new Date()).getTime()+(Math.random()*this.restartTime)):
+        this.setDefaults((new Date()).getTime()+this.restartTime);
         this.poppedCount = this.poppedCount - 1;
     }
 }
 
 SoundShape.prototype.popCircle = function() {
-    this.setDefaults((new Date()).getTime()+(Math.random()*this.padTime));
+    this.randomizeRestartTime ?
+    this.setDefaults((new Date()).getTime()+(Math.random()*this.restartTime)):
+    this.setDefaults((new Date()).getTime()+this.restartTime);
     this.poppedCount++;
     if(this.poppedCount == this.popMax) {
         this.gravity = this.gravity + this.gravityOffset;
@@ -227,7 +246,7 @@ SoundShape.prototype.PlayTone = function (caller) {
         this.playing = true;
         this.player = caller;
         this.aSineWave = new SineWave(this.audioContext);
-        this.setToneByYLocation();
+       // this.setToneByYLocation();
         this.aSineWave.setFrequency(this.toneToPlay);
         this.aSineWave.setAmplitude(this.amplitude);
         for (var i = 0; i < this.connections.length; i++) {
