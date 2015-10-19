@@ -3,6 +3,11 @@
 
 //sound shape takes a canvas drawling context and an audio context and x y point
 SoundShape = function(id,cContext, aContext, center, tone, radius) {
+    this.motionType = {
+    STATIC: 0,
+    LINEAR: 1,
+    GRAVITY: 2
+    };
     this.center = center;
     this.radius = radius;
     this.drawContext = cContext;
@@ -17,7 +22,7 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.MinorChord = [];
     this.SequenceOne = [];
     this.makeScales();
-    this.tone = tone * Math.pow(1.05946,this.Aeolian[id]);
+    this.tone = tone; // * Math.pow(1.05946,this.Aeolian[id]);
     this.currentOriginX = 320;
     this.currentOriginY = 240;
     this.originX = this.center.x;
@@ -32,6 +37,8 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.amplitude = 0.1;
     this.connections = [];
     this.xoffset = 65.0;
+    this.yoffset = 45.0;
+    
     this.radiusDiv = 20.0;
     
     this.poppedCount = 0;
@@ -39,6 +46,7 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.width = 640;
     this.height = 480;
     
+    //this.motionType = 0; //0 = static, 1 = linear, 2 = gravity
     this.motionIsLinear = false;
     this.yVelocity = 0.0;
     this.yVelocitySave = this.yVelocity;
@@ -53,6 +61,11 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.randomizeXStartPos = false;
     this.randomizeYStartPos = false;
     this.adjustRadiusByTone = false;
+    
+    this.myMotionType;
+    this.setTone(tone);
+    
+    this.gestureTriggered = false;
 }
 
 SoundShape.prototype.connect = function(node) {
@@ -75,10 +88,6 @@ SoundShape.prototype.setAmplitude = function(amplitude) {
     this.amplitude = amplitude;
 }
 
-SoundShape.prototype.setMotionIsLinear = function(isLinear) {
-    this.motionIsLinear = isLinear;
-}
-
 SoundShape.prototype.setYVelocity = function(vel) {
     this.yVelocitySave = this.yVelocity;
     this.yVelocity = vel;
@@ -88,7 +97,11 @@ SoundShape.prototype.setDefaults = function(sTime) {
     this.randomizeXStartPos ?
     this.center.x = this.xoffset+(Math.random()*(this.width-this.xoffset)):
     this.center.x = this.originX;
+    
+    this.randomizeYStartPos ?
+    this.center.y = this.yoffset+(Math.random()*(this.height-this.yoffset)):
     this.center.y = this.originY;
+    
     this.startTime = sTime;
     if(this.adjustRadiusByTone)
         this.radius = this.tone/this.radiusDiv;
@@ -99,7 +112,7 @@ SoundShape.prototype.setGravity = function(grav) {
     this.gravity = grav;
 }
 
-SoundShape.prototype.updateCenterWithGravity = function(time) {
+SoundShape.prototype.updateSoundShapeGravity = function(newData,oldData,time) {
     this.center.y = 0.5 * this.gravity * Math.pow(time/1000,2);
     if(this.center.y > (this.height+this.radius)) {
         this.randomizeRestartTime ?
@@ -107,9 +120,10 @@ SoundShape.prototype.updateCenterWithGravity = function(time) {
         this.setDefaults((new Date()).getTime()+this.restartTime);
         this.poppedCount = this.poppedCount - 1;
     }
+    this.processDiff(newData,oldData);
 }
 
-SoundShape.prototype.updateCenterLinear = function(time) {
+SoundShape.prototype.updateSoundShapeLinear = function(newData,oldData,time) {
     this.center.y = this.center.y + (this.yVelocity * (time/1000));
     if(this.center.y > (this.height+this.radius)) {
         this.randomizeRestartTime ?
@@ -117,6 +131,11 @@ SoundShape.prototype.updateCenterLinear = function(time) {
         this.setDefaults((new Date()).getTime()+this.restartTime);
         this.poppedCount = this.poppedCount - 1;
     }
+    this.processDiff(newData,oldData);
+}
+
+SoundShape.prototype.updateSoundShapeStatic = function(newData,oldData,time) {
+    this.processDiff(newData,oldData);
 }
 
 SoundShape.prototype.popCircle = function() {
@@ -132,12 +151,17 @@ SoundShape.prototype.popCircle = function() {
 }
 
 SoundShape.prototype.updateSoundShape = function(newData,oldData,time) {
-    if(this.motionIsLinear) {
-        this.updateCenterLinear(time);
-    } else {
-        this.updateCenterWithGravity(time);
+    switch(this.myMotionType) {
+        case this.motionType.STATIC:
+            this.updateSoundShapeStatic(newData,oldData,time);
+        break;
+        case this.motionType.LINEAR:
+            this.updateSoundShapeLinear(newData,oldData,time);
+        break;
+        case this.motionType.GRAVITY:
+            this.updateSoundShapeGravity(newData,oldData,time);
+        break;
     }
-    this.processDiff(newData,oldData);
 }
 
 
@@ -148,8 +172,10 @@ SoundShape.prototype.setCenter = function(p) {
 }
 
 SoundShape.prototype.setTone = function(t) {
-  this.aSineWave.setFrequency(this.tone);
+    this.tone = t * Math.pow(1.05946,this.Ionian[this.myId]);
+    console.log("Tone is: ",this.tone);
 }
+ 
 
 SoundShape.prototype.setRadius = function(r) {
   this.radius = r;
@@ -183,6 +209,8 @@ SoundShape.prototype.setFillStyle = function() {
 
 SoundShape.prototype.processDiff = function(diffData, oldData) {
     this.frameCount++;
+    this.gestureTriggered = false;
+    
     var sum = 0;
     var yStart = Math.round(this.center.y - this.radius)
     var yEnd  = Math.round(this.center.y + this.radius);
@@ -247,7 +275,7 @@ SoundShape.prototype.PlayTone = function (caller) {
         this.player = caller;
         this.aSineWave = new SineWave(this.audioContext);
        // this.setToneByYLocation();
-        this.aSineWave.setFrequency(this.toneToPlay);
+        this.aSineWave.setFrequency(this.tone);
         this.aSineWave.setAmplitude(this.amplitude);
         for (var i = 0; i < this.connections.length; i++) {
             this.aSineWave.getOutNode().connect(this.connections[i]);
@@ -279,6 +307,15 @@ SoundShape.prototype.makeScales = function () {
    this.Ionian[5] = 9;
    this.Ionian[6] = 11;
    this.Ionian[7] = 12;
+    this.Ionian[8] = 14;
+    this.Ionian[9] = 16;
+    this.Ionian[10] = 17;
+    this.Ionian[11] = 19;
+    this.Ionian[12] = 21;
+    this.Ionian[13] = 23;
+    this.Ionian[14] = 24;
+    this.Ionian[15] = 28;
+
 
    this.Aeolian[0] = 0;
    this.Aeolian[1] = 2;

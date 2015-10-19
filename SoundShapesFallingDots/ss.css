@@ -11,3 +11,11 @@
     padding-left: 5px;
 }
 
+.ui-widget { font-family: Trebuchet MS, Tahoma, Verdana,
+    Arial, sans-serif; font-size: 11px; }
+
+
+label {
+    font-family: Trebuchet MS, Tahoma, Verdana,
+    Arial, sans-serif; font-size: 11px;
+}

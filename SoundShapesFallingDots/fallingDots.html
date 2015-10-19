@@ -13,6 +13,11 @@
         <script>
                 
             window.onload = init;
+            var myMotionType = {
+                STATIC: 0,
+                LINEAR: 1,
+                GRAVITY: 2
+            };
             var aContext;
             var oConext;
             var output;
@@ -23,7 +28,7 @@
             var frameCount = 0;
             var numShapes = 4;
             var drawDots = false;
-            var useMotionType = 0; //0 = static, 1 = linear velocity, 2 = accel constant, 3 = accel change
+            var useMotionType = myMotionType.LINEAR;
             function init() {
                 localVideo = document.querySelector('#localVideo');;
                 output = document.querySelector('#output');
@@ -42,7 +47,7 @@
                 var actxCall = window.webkitAudioContext || window.AudioContext;
                 aContext = new actxCall();
                     
-                var origX = 30;
+               /* var origX = 30;
                 var origY = -60;
                 var baseTone = 440;
                 var sRad = 30;
@@ -61,7 +66,7 @@
                     soundShapes.push(aSoundShape);
                     console.log("SoundShape:",i,x,y,sRad,baseTone * Math.pow(1.05946,soundShapes[i].SequenceOne[i]),circleSpacing);
                 }
-                console.log("Made soundShapes:",soundShapes.length);
+                console.log("Made soundShapes: and this: ",soundShapes.length, $( "#velocity_slider").slider("value"),useMotionType);*/
             }
             
             startMedia();
@@ -80,7 +85,51 @@
                 attachMediaStream(localVideo, stream);
                 localStream = stream;
             }
-            
+            function createSoundShapes() {
+                var origX = 30;
+                var origY = -60;
+                var sRad = 30;
+                numShapes = $( "#numShapes_slider" ).slider( "value" );
+                baseTone = $( "#baseTone_slider" ).slider( "value" );
+                var circleSpacing = output.width/numShapes;
+             
+                for(var i=0; i<numShapes; i++) {
+                    var x = origX + ((i+1)*sRad) + ((i+1)*circleSpacing);
+                    var y = origY - sRad;
+                    aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad);
+                    aSoundShape.setAmplitude(0.1);
+                    aSoundShape.myMotionType = useMotionType;
+                    aSoundShape.setRandomizeRestartTime(false);
+                    switch(useMotionType) {
+                        case myMotionType.STATIC:
+                            aSoundShape.setRandomizeXPos(true);
+                            aSoundShape.setRandomizeYPos(true);
+                        break;
+                        case myMotionType.LINEAR:
+                            aSoundShape.setRandomizeXPos(false);
+                            aSoundShape.setRandomizeYPos(false);
+                            aSoundShape.setYVelocity($( "#velocity_slider" ).slider("value"));
+                        break;
+                        case myMotionType.GRAVITY:
+                            aSoundShape.setRandomizeXPos(false);
+                            aSoundShape.setRandomizeYPos(false);
+                            aSoundShape.setGravity($( "#gravity_slider").slider("value"));
+                        break;
+                    }
+                    //sets default positions and time
+                    aSoundShape.setDefaults((new Date()).getTime());
+                    soundShapes.push(aSoundShape);
+                }
+                console.log("Made soundShapes: and this: ",soundShapes.length, $( "#velocity_slider").slider("value"),useMotionType);
+            }
+            //removes soundShapes
+            function destroySoundShapes() {
+                
+                for(var i=0; i<=numShapes; i++) {
+                    soundShapes.pop();
+                }
+            }
+        
             function animate(video,context) {
                 if (output.width != localVideo.clientWidth) {
                     output.width = localVideo.clientWidth;
@@ -110,38 +159,54 @@
                 console.log('navigator.getUserMedia error: ', error);
             }
         
+            //ui event callbacks
             function setDrawDots() {
                 if(!drawDots) {
+                    createSoundShapes();
                     drawDots = true;
                 } else {
+                    destroySoundShapes();
                     drawDots = false;
                 }
             }
             function setMotionType(mType) {
                 if(mType == 0) {
+                    //hide all sliders
                     $( "#velocity_slider").hide();
                     $( "#gravity_slider").hide();
                     $( "#velocity").hide();
                     $( "#gravity" ).hide();
+                    //set ui motion type
+                    useMotionType = myMotionType.STATIC;
+                    //set ss motion type
+                    for(var i=0; i<soundShapes.length; i++) {
+                        soundShapes[i].setMotionType = useMotionType;
+                    }
                 }
                 if(mType == 1) {
+                 //switch out sliders
                     $( "#velocity_slider").show();
                     $( "#gravity_slider").hide();
                     $( "#velocity").show();
                     $( "#gravity" ).hide();
+                        
+                    useMotionType = myMotionType.LINEAR;
+                        
                     for(var i=0; i<soundShapes.length; i++) {
-                        soundShapes[i].setMotionIsLinear(true);
-                        console.log("Set motion to linear!");
+                        soundShapes[i].setMotionType = useMotionType;
                     }
                 }
+                
                 if(mType == 2) {
                     $( "#velocity_slider").hide();
                     $( "#gravity_slider").show();
                     $( "#velocity").hide();
                     $( "#gravity" ).show();
+                    
+                    useMotionType = myMotionType.GRAVITY;
+                    
                     for(var i=0; i<soundShapes.length; i++) {
-                        soundShapes[i].setMotionIsLinear(false);
-                        //soundShapes[i].setAccelIsUniform(true);
+                        soundShapes[i].setMotionType = useMotionType;
                     }
                 }
             }
@@ -158,6 +223,12 @@
                 }
             }
 
+            function changeRootTone(tone) {
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].setTone(tone);
+                }
+            }
+        
             function setRandomizeXPos() {
                 for(var i=0; i<soundShapes.length; i++) {
                     soundShapes[i].randomizeXStartPos ?
@@ -193,8 +264,10 @@
                     soundShapes[i].setRandomizeRestartTime(true);
                 }
             }
-
+        
+            
             setTimeout(function() { animate(localVideo,oContext); }, 2000);
+        
         </script>
         <script>
             //stop/start button
@@ -256,6 +329,37 @@
                 });
                 $( "#gravity" ).val( $( "#gravity_slider" ).slider( "value" ) );
               });
+              //num sound shapes slider
+              //Gravity slider
+            $(function() {
+              $( "#numShapes_slider" ).slider({
+                range: false,
+                min: 1,
+                max: 16,
+                step: 1,
+                value: 3,
+                slide: function( event, ui ) {
+                $( "#numShapes" ).val( ui.value );
+                changeGravity(ui.value);
+                }
+              });
+              $( "#numShapes" ).val( $( "#numShapes_slider" ).slider( "value" ) );
+            });
+            $(function() {
+              $( "#baseTone_slider" ).slider({
+                range: false,
+                min: 20,
+                max: 880,
+                step: 1,
+                value: 440,
+                slide: function( event, ui ) {
+                $( "#baseTone" ).val( ui.value );
+                    changeRootTone(ui.value);
+                }
+              });
+              $( "#baseTone" ).val( $( "#baseTone_slider" ).slider( "value" ) );
+            });
+
         </script>
     </head>
   <body>
@@ -270,15 +374,29 @@
       </div>
       <div>
           <table>
-              <td><input type="checkbox" id="randXPos"><label for="randXPos">RandXPos</label></td>
-              <td><input type="checkbox" id="randYPos"><label for="randYPos">RandYPos</label></td>
-              <td><input type="checkbox" id="randYVel"><label for="randYVel">RandYVel</label></td>
-              <td><input type="checkbox" id="randYAccel"><label for="randYAccel">RandYAccel</label></td>
-              <td><input type="checkbox" id="randSTime"><label for="randSTime">RandSTime</label></td>
+            <td><input type="checkbox" id="randXPos"><label for="randXPos">RandXPos</label></td>
+            <td><input type="checkbox" id="randYPos"><label for="randYPos">RandYPos</label></td>
+            <td><input type="checkbox" id="randYVel"><label for="randYVel">RandYVel</label></td>
+            <td><input type="checkbox" id="randYAccel"><label for="randYAccel">RandYAccel</label></td>
+            <td><input type="checkbox" id="randSTime"><label for="randSTime">RandSTime</label></td>
           </table>
       </div>
       <div>
-          <style>
+          <table>
+              <td><label for="numShapes">Number of SoundShapes:</label>
+                <input type="text" id="numShapes" readonly style="border:0; color:#f6931f; font-weight:bold;">
+                <div id="numShapes_slider"></div>
+              </td>
+              <td><label for="baseTone">BaseTone:</label>
+                  <input type="text" id="baseTone" readonly style="border:0; color:#f6931f; font-weight:bold;">
+                  <div id="baseTone_slider"></div>
+               </td>
+            </table>
+      </div>
+      <div>
+          <table>
+              <td>
+        <style>
           label {
           display: block;
           margin: 20px 0 0 0;
@@ -295,17 +413,14 @@
               <option value="2">Gravity</option>
           </select>
           </form>
-      </div>
-      <p>
-      <label for="velocity" class="hideVelocity">Linear Velocity:</label>
+          </td>
+              <td>
       <input type="text" id="velocity" readonly style="border:0; color:#f6931f; font-weight:bold;">
-      </p>
       <div id="velocity_slider"></div>
-      <p>
-      <label for="gravity" class="hideGravity">Gravity:</label>
       <input type="text" id="gravity" readonly style="border:0; color:#f6931f; font-weight:bold;">
-          </p>
-          <div id="gravity_slider"></div>
+      <div id="gravity_slider"></div>
+      </td>
+      </div>
           
   </body>
 </html>
