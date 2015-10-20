@@ -18,6 +18,7 @@
                 LINEAR: 1,
                 GRAVITY: 2
             };
+            var theCanvas;
             var aContext;
             var oConext;
             var output;
@@ -28,11 +29,16 @@
             var frameCount = 0;
             var numShapes = 4;
             var drawDots = false;
+            var dragging = false;
             var useMotionType = myMotionType.LINEAR;
             function init() {
+                theCanvas = document.getElementById("output");
+                theCanvas.addEventListener("mousedown", mouseDownListener, false);
+                
                 localVideo = document.querySelector('#localVideo');;
                 output = document.querySelector('#output');
                 oContext = output.getContext('2d');
+        
                 var localStream;
                     
                 window.requestAnimFrame = (function(callback) {
@@ -91,12 +97,12 @@
                 var sRad = 30;
                 numShapes = $( "#numShapes_slider" ).slider( "value" );
                 baseTone = $( "#baseTone_slider" ).slider( "value" );
-                var circleSpacing = output.width/numShapes;
+                var circleSpacing = (output.width/numShapes)/2.0;
              
                 for(var i=0; i<numShapes; i++) {
                     var x = origX + ((i+1)*sRad) + ((i+1)*circleSpacing);
                     var y = origY - sRad;
-                    aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad);
+                    aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad,numShapes);
                     aSoundShape.setAmplitude(0.1);
                     aSoundShape.myMotionType = useMotionType;
                     aSoundShape.setRandomizeRestartTime(false);
@@ -104,20 +110,26 @@
                         case myMotionType.STATIC:
                             aSoundShape.setRandomizeXPos(true);
                             aSoundShape.setRandomizeYPos(true);
+                            //set defaults then reset randomize positions to false
+                            aSoundShape.setDefaults((new Date()).getTime());
+                            aSoundShape.setRandomizeXPos(false);
+                            aSoundShape.setRandomizeYPos(false);
+
                         break;
                         case myMotionType.LINEAR:
                             aSoundShape.setRandomizeXPos(false);
                             aSoundShape.setRandomizeYPos(false);
                             aSoundShape.setYVelocity($( "#velocity_slider" ).slider("value"));
+                            aSoundShape.setDefaults((new Date()).getTime());
                         break;
                         case myMotionType.GRAVITY:
                             aSoundShape.setRandomizeXPos(false);
                             aSoundShape.setRandomizeYPos(false);
                             aSoundShape.setGravity($( "#gravity_slider").slider("value"));
+                            aSoundShape.setDefaults((new Date()).getTime());
                         break;
                     }
-                    //sets default positions and time
-                    aSoundShape.setDefaults((new Date()).getTime());
+                    //add sound shape to list
                     soundShapes.push(aSoundShape);
                 }
                 console.log("Made soundShapes: and this: ",soundShapes.length, $( "#velocity_slider").slider("value"),useMotionType);
@@ -158,7 +170,84 @@
             function handleUserMediaError(error){
                 console.log('navigator.getUserMedia error: ', error);
             }
+            //mouse shite
+            function mouseDownListener(evt) {
+                var bRect = theCanvas.getBoundingClientRect();
+                mouseX = (evt.clientX - bRect.left)*(theCanvas.width/bRect.width);
+                mouseY = (evt.clientY - bRect.top)*(theCanvas.height/bRect.height);
+				
+                //find which shape was clicked
+                for (var i=0; i < soundShapes.length; i++) {
+                    if	(hitTest(soundShapes[i], mouseX, mouseY)) {
+                        dragging = true;
+                        dragHoldX = mouseX - soundShapes[i].center.x;
+                        dragHoldY = mouseY - soundShapes[i].center.y;
+                        dragIndex = i;
+                    }
+                }
+                
+                if (dragging) {
+                    window.addEventListener("mousemove", mouseMoveListener, false);
+                }
+                theCanvas.removeEventListener("mousedown", mouseDownListener, false);
+                window.addEventListener("mouseup", mouseUpListener, false);
+                
+                //code below prevents the mouse down from having an effect on the main browser window:
+                if (evt.preventDefault) {
+                    evt.preventDefault();
+                } //standard
+                else if (evt.returnValue) {
+                    evt.returnValue = false;
+                } //older IE
+                return false;
+            }
         
+        function mouseUpListener(evt) {
+            theCanvas.addEventListener("mousedown", mouseDownListener, false);
+            window.removeEventListener("mouseup", mouseUpListener, false);
+            if (dragging) {
+                dragging = false;
+                window.removeEventListener("mousemove", mouseMoveListener, false);
+            }
+        }
+        
+        function mouseMoveListener(evt) {
+            var posX;
+            var posY;
+            var shapeRad = soundShapes[dragIndex].radius;
+            var minX = shapeRad;
+            var maxX = theCanvas.width - shapeRad;
+            var minY = shapeRad;
+            var maxY = theCanvas.height - shapeRad;
+            //getting mouse position correctly
+            var bRect = theCanvas.getBoundingClientRect();
+            mouseX = (evt.clientX - bRect.left)*(theCanvas.width/bRect.width);
+            mouseY = (evt.clientY - bRect.top)*(theCanvas.height/bRect.height);
+            
+            //clamp x and y positions to prevent object from dragging outside of canvas
+            posX = mouseX - dragHoldX;
+            posX = (posX < minX) ? minX : ((posX > maxX) ? maxX : posX);
+            posY = mouseY - dragHoldY;
+            posY = (posY < minY) ? minY : ((posY > maxY) ? maxY : posY);
+            
+            soundShapes[dragIndex].center.x = posX;
+            soundShapes[dragIndex].center.y = posY;
+            soundShapes[dragIndex].originX = posX;
+            soundShapes[dragIndex].originY = posY;
+            
+            soundShapes[dragIndex].drawCircle();
+        }
+        
+        function hitTest(shape,mx,my) {
+            
+            var dx;
+            var dy;
+            dx = mx - shape.center.x;
+            dy = my - shape.center.y;
+            
+            //a "hit" will be registered if the distance away from the center is less than the radius of the circular object		
+            return (dx*dx + dy*dy < shape.radius*shape.radius);
+        }
             //ui event callbacks
             function setDrawDots() {
                 if(!drawDots) {

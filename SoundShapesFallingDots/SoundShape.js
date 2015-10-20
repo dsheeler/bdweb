@@ -2,12 +2,23 @@
 
 
 //sound shape takes a canvas drawling context and an audio context and x y point
-SoundShape = function(id,cContext, aContext, center, tone, radius) {
+SoundShape = function(id,cContext, aContext, center, tone, radius, nShapes) {
     this.motionType = {
     STATIC: 0,
     LINEAR: 1,
     GRAVITY: 2
     };
+    this.colorType = {
+    SINGLE: 0,
+    LINEARY: 1
+    };
+    this.shapeActionType = {
+    POP: 0,
+    HIT: 1,
+    HITONOFF: 2,
+    HOLD: 3
+    };
+    this.numShapesInGroup = nShapes;
     this.center = center;
     this.radius = radius;
     this.drawContext = cContext;
@@ -63,6 +74,10 @@ SoundShape = function(id,cContext, aContext, center, tone, radius) {
     this.adjustRadiusByTone = false;
     
     this.myMotionType;
+    this.myColorType = this.colorType.SINGLE;
+    this.myColor;
+   this.setShapeColor();
+    
     this.setTone(tone);
     
     this.gestureTriggered = false;
@@ -105,11 +120,23 @@ SoundShape.prototype.setDefaults = function(sTime) {
     this.startTime = sTime;
     if(this.adjustRadiusByTone)
         this.radius = this.tone/this.radiusDiv;
+    
+    this.originX = this.center.x;
+    this.originY = this.center.y;
 }
 
 SoundShape.prototype.setGravity = function(grav) {
     this.gravitySave = this.gravity;
     this.gravity = grav;
+}
+
+SoundShape.prototype.setShapeColor = function() {
+    var frequency = Math.PI/this.numShapesInGroup;
+    red   = Math.floor(Math.sin(frequency * this.myId + 2) * 127 + 128);
+    green = Math.floor(Math.sin(frequency * this.myId + 0) * 127 + 42);
+    blue  = Math.floor(Math.sin(frequency * this.myId + 4) * 127 + 128);
+    this.myColor = "rgba(" + red + "," + green + "," + blue + ", 0.8)";
+    //console.log("Color is: ",this.myColor);
 }
 
 SoundShape.prototype.updateSoundShapeGravity = function(newData,oldData,time) {
@@ -150,6 +177,18 @@ SoundShape.prototype.popCircle = function() {
 
 }
 
+SoundShape.prototype.hitCircle = function() {
+    this.randomizeRestartTime ?
+    this.setDefaults((new Date()).getTime()+(Math.random()*this.restartTime)):
+    this.setDefaults((new Date()).getTime()+this.restartTime);
+    this.poppedCount++;
+    if(this.poppedCount == this.popMax) {
+        this.gravity = this.gravity + this.gravityOffset;
+        this.poppedCount = 0;
+    }
+    
+}
+
 SoundShape.prototype.updateSoundShape = function(newData,oldData,time) {
     switch(this.myMotionType) {
         case this.motionType.STATIC:
@@ -162,6 +201,8 @@ SoundShape.prototype.updateSoundShape = function(newData,oldData,time) {
             this.updateSoundShapeGravity(newData,oldData,time);
         break;
     }
+    //call draw routine;
+    this.drawCircle();
 }
 
 
@@ -182,19 +223,33 @@ SoundShape.prototype.setRadius = function(r) {
 }
 
 SoundShape.prototype.drawCircle = function() {
-  this.setFillStyle();
-  this.drawContext.beginPath();
-    this.drawContext.arc(this.center.x,this.center.y,this.radius,0,2.0*Math.PI);
-    var linGrad = this.drawContext.createLinearGradient(0,0,0,this.height);
-    linGrad.addColorStop(0, "rgba(255,0,0,0.8)");
-    linGrad.addColorStop(0.5,"rgba(0,255,0,0.8)");
-    linGrad.addColorStop(1, "rgba(0,0,255,0.8)");
-    this.drawContext.strokeStyle = "black";
-    this.drawContext.fillStyle = linGrad;
-    this.drawContext.lineWidth = 2.0;
-    this.drawContext.fill();
-    this.drawContext.stroke();
-    this.drawContext.closePath();
+    if(!this.gestureTriggered) {
+        if(this.playing) {
+            this.PauseTone(this);
+        }
+        this.drawContext.beginPath();
+        this.drawContext.arc(this.center.x,this.center.y,this.radius,0,2.0*Math.PI);
+        switch(this.myColorType) {
+            case this.colorType.SINGLE:
+               this.drawContext.fillStyle = this.myColor;
+            break;
+            case this.colorType.LINEARY:
+                var linGrad = this.drawContext.createLinearGradient(0,0,0,this.height);
+                linGrad.addColorStop(0, "rgba(255,0,0,0.8)");
+                linGrad.addColorStop(0.5,"rgba(0,255,0,0.8)");
+                linGrad.addColorStop(1, "rgba(0,0,255,0.8)");
+                this.drawContext.fillStyle = linGrad;
+            break;
+        }
+        this.drawContext.strokeStyle = "black";
+        this.drawContext.lineWidth = 2.0;
+        this.drawContext.fill();
+        this.drawContext.stroke();
+        this.drawContext.closePath();
+    } else {
+        this.PlayTone(this);
+        this.popCircle();
+    }
 }
 
 SoundShape.prototype.setFillStyle = function() {
@@ -228,21 +283,11 @@ SoundShape.prototype.processDiff = function(diffData, oldData) {
     
     if(sum == 0 || isNaN(sum)) {
         this.diffSum = 0.0;
-        if(this.playing) {
-            this.PauseTone(this);
-        }
-        this.drawCircle();
         return;
     } else {
         this.diffSum = sum;
         if(this.diffSum > this.diffSumTol) {
-            if(!this.playing) {
-                this.PlayTone(this);
-                this.drawCircle();
-                this.popCircle();
-            }
-        } else {
-            this.drawCircle();
+            this.gestureTriggered = true;
         }
     }
  }
