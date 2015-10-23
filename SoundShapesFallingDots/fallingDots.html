@@ -136,6 +136,11 @@
             //removes soundShapes
             function destroySoundShapes() {
                 
+                for(var i=0; i<soundShapes.length; i++) {
+                    if(soundShapes[i].playing) {
+                        soundShapes[i].PauseTone(soundShapes[i]);
+                    }
+                }
                 for(var i=0; i<=numShapes; i++) {
                     soundShapes.pop();
                 }
@@ -148,11 +153,20 @@
                     output.style.width = localVideo.clientWidth +'px';
                     output.style.height = localVideo.clientHeight + 'px';
                 }
-                context.drawImage(video,0,0,output.width,output.height);
-                var imgData = context.getImageData(0, 0, output.width,output.height);
+                //flip video
+                var tmpCanvas = document.getElementById("output");
+                var tmpContext = tmpCanvas.getContext('2d');
+                tmpContext.save();
+                tmpContext.translate(output.width/2, output.height/2);
+                tmpContext.scale(-1,1);
+                tmpContext.translate(-output.width/2, -output.height/2);
+                tmpContext.drawImage(video,0,0,output.width,output.height);
+                tmpContext.restore();
+                
+                var imgData = tmpContext.getImageData(0, 0, output.width,output.height);
              
              if(frameCount % collectOldDataCount == 0) {
-                 oldData = context.getImageData(0, 0, output.width,output.height);
+                 oldData = tmpContext.getImageData(0, 0, output.width,output.height);
                  //console.log("Got old data!",frameCount);
              }
 
@@ -164,7 +178,7 @@
                 }
                 
                 
-                requestAnimFrame(function() { animate(video, context); });
+                requestAnimFrame(function() { animate(video, tmpContext); });
                 frameCount++;
             }
         

@@ -67,6 +67,7 @@ SoundShape = function(id,cContext, aContext, center, tone, radius, nShapes) {
     
     this.gravity = 200.0;
     
+    this.playing = false;
     this.toneToPlay = this.tone;
     
     this.actionDuration = 1000.0;
