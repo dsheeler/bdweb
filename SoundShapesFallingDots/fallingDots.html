@@ -12,15 +12,21 @@
         <link rel="stylesheet" href="ss.css">
         <script>
                 
-            window.onload = init;
+            
             var myMotionType = {
                 STATIC: 0,
                 LINEAR: 1,
                 GRAVITY: 2
             };
+            this.gestureTriggerType = {
+                POP: 0,
+                HIT: 1,
+                HITONOFF: 2,
+                HOLD: 3
+            };
+        
             var theCanvas;
-            var aContext;
-            var oConext;
+            var oContext;
             var output;
             var localVideo;
             var soundShapes = [];
@@ -30,13 +36,19 @@
             var numShapes = 4;
             var drawDots = false;
             var dragging = false;
-            var useMotionType = myMotionType.LINEAR;
+            var useMotionType = myMotionType.STATIC;
+            var useGestureTrrigerType = gestureTriggerType.POP;
+            var useChangeTime = 1000;
+            window.onload = init;
+            
             function init() {
                 theCanvas = document.getElementById("output");
                 theCanvas.addEventListener("mousedown", mouseDownListener, false);
                 
-                localVideo = document.querySelector('#localVideo');;
+                
                 output = document.querySelector('#output');
+                
+                localVideo = document.querySelector('#localVideo');
                 oContext = output.getContext('2d');
         
                 var localStream;
@@ -52,27 +64,12 @@
                                                 
                 var actxCall = window.webkitAudioContext || window.AudioContext;
                 aContext = new actxCall();
-                    
-               /* var origX = 30;
-                var origY = -60;
-                var baseTone = 440;
-                var sRad = 30;
-                var circleSpacing = output.width/numShapes;
-                    
-                for(var i=0; i<numShapes; i++) {
-                    var x = origX + ((i+1)*sRad) + ((i+1)*circleSpacing);
-                    var y = origY - sRad;
-                    aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad);
-                    aSoundShape.setAmplitude(0.1);
-                    aSoundShape.setMotionIsLinear(true);
-                    aSoundShape.setYVelocity(0.5);
-                    aSoundShape.setGravity(200.0);
-                    
-                    aSoundShape.setDefaults((new Date()).getTime());
-                    soundShapes.push(aSoundShape);
-                    console.log("SoundShape:",i,x,y,sRad,baseTone * Math.pow(1.05946,soundShapes[i].SequenceOne[i]),circleSpacing);
-                }
-                console.log("Made soundShapes: and this: ",soundShapes.length, $( "#velocity_slider").slider("value"),useMotionType);*/
+                
+                $( "#velocity_slider").hide();
+                $( "#gravity_slider").hide();
+                $( "#velocity").hide();
+                $( "#gravity" ).hide();
+                animate(localVideo,oContext);
             }
             
             startMedia();
@@ -93,7 +90,7 @@
             }
             function createSoundShapes() {
                 var origX = 30;
-                var origY = -60;
+                var origY = 30;
                 var sRad = 30;
                 numShapes = $( "#numShapes_slider" ).slider( "value" );
                 baseTone = $( "#baseTone_slider" ).slider( "value" );
@@ -105,6 +102,8 @@
                     aSoundShape = new SoundShape(i,oContext, aContext, {'x':x, 'y':y},baseTone, sRad,numShapes);
                     aSoundShape.setAmplitude(0.1);
                     aSoundShape.myMotionType = useMotionType;
+                    aSoundShape.myGestureTriggerType = useGestureTrrigerType;
+                    aSoundShape.setActionDuration(useChangeTime);
                     aSoundShape.setRandomizeRestartTime(false);
                     switch(useMotionType) {
                         case myMotionType.STATIC:
@@ -152,17 +151,19 @@
                 context.drawImage(video,0,0,output.width,output.height);
                 var imgData = context.getImageData(0, 0, output.width,output.height);
              
-                if(frameCount % collectOldDataCount == 0) {
-                    oldData = context.getImageData(0, 0, output.width,output.height);
-                }
+             if(frameCount % collectOldDataCount == 0) {
+                 oldData = context.getImageData(0, 0, output.width,output.height);
+                 //console.log("Got old data!",frameCount);
+             }
+
                 if(drawDots) {
                     for(var i=0; i<soundShapes.length; i++) {
                         var time = (new Date()).getTime() - soundShapes[i].startTime;
-                        if(time > 0) {
-                            soundShapes[i].updateSoundShape(imgData,oldData,time);
-                        }
+                        soundShapes[i].updateSoundShape(imgData,oldData,time);
                     }
                 }
+                
+                
                 requestAnimFrame(function() { animate(video, context); });
                 frameCount++;
             }
@@ -278,7 +279,6 @@
                     $( "#gravity_slider").hide();
                     $( "#velocity").show();
                     $( "#gravity" ).hide();
-                        
                     useMotionType = myMotionType.LINEAR;
                         
                     for(var i=0; i<soundShapes.length; i++) {
@@ -291,7 +291,6 @@
                     $( "#gravity_slider").show();
                     $( "#velocity").hide();
                     $( "#gravity" ).show();
-                    
                     useMotionType = myMotionType.GRAVITY;
                     
                     for(var i=0; i<soundShapes.length; i++) {
@@ -300,6 +299,52 @@
                 }
             }
         
+            function setGestureType(gType) {
+                if(gType == 0) {
+                    $( "#actionDuration_slider").show();
+                    $( "#gestureTol_slider").show();
+                    
+                    useGestureTrrigerType = gestureTriggerType.POP;
+                    //set ss gestureTriggerType type
+                    for(var i=0; i<soundShapes.length; i++) {
+                        soundShapes[i].setMotionType = useGestureTrrigerType;
+                    }
+                }
+                if(gType == 1) {
+                    $( "#actionDuration_slider").show();
+                    $( "#gestureTol_slider").show();
+                    
+                    useGestureTrrigerType = gestureTriggerType.HIT;
+                    //set ss gestureTriggerType type
+                    for(var i=0; i<soundShapes.length; i++) {
+                        soundShapes[i].setMotionType = useGestureTrrigerType;
+                    }
+                    console.log("Set gesture type to hit!");
+                }
+                if(gType == 2) {
+                    $( "#actionDuration_slider").hide();
+                    $( "#gestureTol_slider").show();
+                    
+                    useGestureTrrigerType = gestureTriggerType.HITONOFF;
+                    //set ss gestureTriggerType type
+                    for(var i=0; i<soundShapes.length; i++) {
+                        soundShapes[i].setMotionType = useGestureTrrigerType;
+                    }
+                }
+                if(gType == 3) {
+                    //hide all sliders
+                    $( "#actionDuration_slider").hide();
+                    $( "#gestureTol_slider").show();
+                    
+                    useGestureTrrigerType = gestureTriggerType.HOLD;
+                    //set ss gestureTriggerType type
+                    for(var i=0; i<soundShapes.length; i++) {
+                        soundShapes[i].setMotionType = useGestureTrrigerType;
+                    }
+                }
+            }
+
+
             function changeYVelocity(vel) {
                 for(var i=0; i<soundShapes.length; i++) {
                     soundShapes[i].setYVelocity(vel);
@@ -318,6 +363,19 @@
                 }
             }
         
+            function changeActionDuration(dur) {
+                useChangeTime = dur*1000;
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].setActionDuration(useChangeTime);
+                }
+            }
+
+            function changeGestureTol(tol) {
+                for(var i=0; i<soundShapes.length; i++) {
+                    soundShapes[i].setGestureTol(tol*250);
+                }
+            }
+
             function setRandomizeXPos() {
                 for(var i=0; i<soundShapes.length; i++) {
                     soundShapes[i].randomizeXStartPos ?
@@ -353,15 +411,11 @@
                     soundShapes[i].setRandomizeRestartTime(true);
                 }
             }
-        
-            
-            setTimeout(function() { animate(localVideo,oContext); }, 2000);
-        
         </script>
         <script>
             //stop/start button
             $(function() {
-              $("input[type=submit]").button().click(function( event ) { setDrawDots(); })
+              $("#StartStop").button().click(function( event ) { setDrawDots(); })
             });
             //randomize xpos toggle
             $(function() {
@@ -387,6 +441,10 @@
             //motion type selection
             $(function() {
               $("#motionType").selectmenu({change:function(event,data){setMotionType(data.item.value);}});
+            });
+            //gesture type selection
+            $(function() {
+              $("#gestureType").selectmenu({change:function(event,data){setGestureType(data.item.value);}});
             });
             //velocity slider
             $(function() {
@@ -448,6 +506,34 @@
               });
               $( "#baseTone" ).val( $( "#baseTone_slider" ).slider( "value" ) );
             });
+            $(function() {
+              $( "#actionDuration_slider" ).slider({
+                    range: false,
+                    min: 0.1,
+                    max: 10.0,
+                    step: 0.1,
+                    value: 1.0,
+                    slide: function( event, ui ) {
+                    $( "#actionDuration" ).val( ui.value );
+                        changeActionDuration(ui.value);
+                    }
+                    });
+                $( "#actionDuration" ).val( $( "#actionDuration_slider" ).slider( "value" ) );
+              });
+              $(function() {
+                $( "#gestureTol_slider" ).slider({
+                        range: false,
+                        min: 1.0,
+                        max: 10.0,
+                        step: 1.0,
+                        value: 1.0,
+                        slide: function( event, ui ) {
+                        $( "#gestureTol" ).val( ui.value );
+                            changeGestureTol(ui.value);
+                          }
+                        });
+                    $( "#gestureTol" ).val( $( "#gestureTol_slider" ).slider( "value" ) );
+                });
 
         </script>
     </head>
@@ -459,18 +545,16 @@
           </div>
       </div>
       <div>
-          <input type="submit" value="Start/Stop">
-      </div>
-      <div>
           <table>
-            <td><input type="checkbox" id="randXPos"><label for="randXPos">RandXPos</label></td>
-            <td><input type="checkbox" id="randYPos"><label for="randYPos">RandYPos</label></td>
-            <td><input type="checkbox" id="randYVel"><label for="randYVel">RandYVel</label></td>
-            <td><input type="checkbox" id="randYAccel"><label for="randYAccel">RandYAccel</label></td>
-            <td><input type="checkbox" id="randSTime"><label for="randSTime">RandSTime</label></td>
+              <td><input type="checkbox" id="StartStop"><label for="StartStop">Start/Stop</label></td>
+              <td><input type="checkbox" id="randXPos"><label for="randXPos">RandXPos</label></td>
+              <td><input type="checkbox" id="randYPos"><label for="randYPos">RandYPos</label></td>
+              <td><input type="checkbox" id="randYVel"><label for="randYVel">RandYVel</label></td>
+              <td><input type="checkbox" id="randYAccel"><label for="randYAccel">RandYAccel</label></td>
+              <td><input type="checkbox" id="randSTime"><label for="randSTime">RandSTime</label></td>
           </table>
       </div>
-      <div>
+           <div>
           <table>
               <td><label for="numShapes">Number of SoundShapes:</label>
                 <input type="text" id="numShapes" readonly style="border:0; color:#f6931f; font-weight:bold;">
@@ -497,19 +581,39 @@
           <form action="#">
           <label for="motionType">Motion Type:</label>
           <select name="motionType" id="motionType">
-              <option value="0">Static</option>
-              <option value="1" selected>Linear</option>
+              <option value="0" selected>Static</option>
+              <option value="1">Linear</option>
               <option value="2">Gravity</option>
           </select>
           </form>
           </td>
+            <td>
+             <input type="text" id="velocity" readonly style="border:0; color:#f6931f; font-weight:bold;">
+             <div id="velocity_slider"></div>
+             <input type="text" id="gravity" readonly style="border:0; color:#f6931f; font-weight:bold;">
+             <div id="gravity_slider"></div>
+            </td>
+          </table>
+          <table>
               <td>
-      <input type="text" id="velocity" readonly style="border:0; color:#f6931f; font-weight:bold;">
-      <div id="velocity_slider"></div>
-      <input type="text" id="gravity" readonly style="border:0; color:#f6931f; font-weight:bold;">
-      <div id="gravity_slider"></div>
-      </td>
+                <form action="#">
+                <label for="gestureType">Gesture Type:</label>
+                <select name="gestureType" id="gestureType">
+                    <option value="0" selected>POP</option>
+                    <option value="1">HIT</option>
+                    <option value="2">HIT ON/OFF</option>
+                    <option value="2">HOLD</option>
+                </select>
+                </form>
+              </td>
+              <td>
+                <input type="text" id="actionDuration" readonly style="border:0; color:#f6931f; font-weight:bold;">
+                <div id="actionDuration_slider"></div>
+                <input type="text" id="gestureTol" readonly style="border:0; color:#f6931f; font-weight:bold;">
+                <div id="gestureTol_slider"></div>
+                </td>
+              </table>
+
       </div>
-          
   </body>
 </html>
