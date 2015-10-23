@@ -175,6 +175,8 @@ SoundShape.prototype.setDefaults = function(sTime) {
 }
 
 SoundShape.prototype.updateSoundShape = function(newData,oldData,time) {
+    if(time < 0)
+        time = 0;
     switch(this.myMotionType) {
         case this.motionType.STATIC:
             this.updateSoundShapeStatic(newData,oldData,time);
