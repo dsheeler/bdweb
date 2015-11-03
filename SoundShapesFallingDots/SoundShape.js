@@ -91,6 +91,7 @@ SoundShape = function(id,cContext, aContext, center, tone, radius, nShapes) {
     
     this.circlePopped = false;
     this.circleHit = false;
+    this.hitOnOffCount = 0;
 }
 
 
@@ -224,6 +225,9 @@ SoundShape.prototype.processGestureTrigger = function(newData, oldData, time) {
         case this.gestureTriggerType.HIT:
             this.processPopHitDiff(newData,oldData,time,this.gestureResponseType.HIT);
             break;
+        case this.gestureTriggerType.HITONOFF:
+            this.processHitOnOffDiff(newData,oldData,time,this.gestureResponseType.HITONOFF);
+            break;
     }
 }
 
@@ -258,6 +262,22 @@ SoundShape.prototype.processGestureResponse = function(time) {
             }
             this.drawCircle();
             break;
+        case this.gestureResponseType.HITONOFF:
+            if(!this.circleHit && this.hitOnOffCount >= 3) {
+                this.PlayTone(this);
+                this.hitCircle();
+                this.hitOnOffCount = 0;
+                console.log("PLAY TONE");
+            }
+            if(this.circleHit && this.hitOnOffCount >= 3) {
+                this.PauseTone(this);
+                this.circleHit = false;
+                this.hitOnOffCount = 0;
+                this.myGestureResponseType = this.gestureResponseType.NONE;
+                console.log("PAUSE TONE");
+            }
+            this.drawCircle();
+            break;
     }
 }
 
@@ -281,6 +301,35 @@ SoundShape.prototype.processPopHitDiff = function(diffData, oldData, time, grt) 
         sum = Math.sqrt(sum);
         if(sum > 0 && !isNaN(sum)) {
             if(sum > this.diffSumTol) {
+                this.myGestureResponseType = grt;
+            }
+        }
+    }
+    this.processGestureResponse(time);
+}
+
+SoundShape.prototype.processHitOnOffDiff = function(diffData, oldData, time, grt) {
+    this.frameCount++;
+    var sum = 0;
+    var yStart = Math.round(this.center.y - this.radius)
+    var yEnd  = Math.round(this.center.y + this.radius);
+    var xStart = Math.round(this.center.x - this.radius);
+    var xEnd  = Math.round(this.center.x + this.radius);
+    //process data if we are not already responding to a previous gesture
+    if(this.myGestureResponseType == this.gestureResponseType.NONE || this.myGestureResponseType == this.gestureResponseType.HITONOFF) {
+        for(var i=yStart; i<yEnd; i++) {
+            for(var j=xStart; j<xEnd; j++) {
+                var idx = (j + (i * this.width))*4;
+                if (this.isIn(j,i)) {
+                    sum += ((diffData.data[idx]-oldData.data[idx])*(diffData.data[idx]-oldData.data[idx]));
+                }
+            }
+        }
+        sum = Math.sqrt(sum);
+        if(sum > 0 && !isNaN(sum)) {
+            if(sum > this.diffSumTol) {
+                this.hitOnOffCount++;
+                console.log("HIT ON OFF: ",this.hitOnOffCount,sum,this.diffSumTol);
                 this.myGestureResponseType = grt;
             }
         }
