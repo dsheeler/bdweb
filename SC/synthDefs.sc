@@ -3,6 +3,33 @@ s = Server("aServer"); //,NetAddr("192.168.1.66",57110));
 s.boot();
 //SynthDefs
 (
+SynthDef(\pitch_follow, { arg out_bus;
+  var amp, in, signal, freq, has_freq;
+  in = Mix.new(SoundIn.ar([0, 1]));
+  amp = Amplitude.kr(in, 0.05, 0.05);
+  #freq, has_freq = Pitch.kr(in, ampThreshold: 0.02, median: 7);
+  //freq.plot();
+  Out.kr(out_bus, freq);
+}).load(s);
+
+SynthDef(\fatsaw,
+	{
+		arg freq=440, amp=0.3, fat=0.0033, ffreq=2000, atk=0.001, dec=0.3, sus=0.5, rls=0.1,gate=1;
+
+		var f1,f2,f3,f4,synth;
+
+		f1=freq-(freq*fat);
+		f2=freq-(freq*fat/2);
+		f3=freq+(freq*fat/2);
+		f4=freq+(freq*fat);
+
+		synth = LFSaw.ar([f1,f2,f3,f4],[0,0.001,0.002,0.004,0.008]);
+		synth = synth * EnvGen.kr(Env([0,1,sus,0],[atk,dec,rls],'lin',2),gate,doneAction:2);
+		synth=Splay.ar(synth,0.7);
+		synth=RLPF.ar(synth,ffreq*Linen.kr(gate,0.1,0.4,0.2,0),0.4);
+		Out.ar([0,1],synth*amp);
+},[0.1,0.3,4,2]).add;
+
 SynthDef(\kick, {|out = 0, amp = 0, pan|
 var env, bass;
 env = EnvGen.kr(Env.perc(0.001, 0.2, 1, -4), 1, doneAction:2);
@@ -155,13 +182,13 @@ SynthDef(\bass, { | atk = 0.01, dur = 0.15, freq = 50, amp=0.8, out=0 |
 		Out.ar(0, signal);
 	}).send(s);
 
-SynthDef(\snare, {|freq=180, amp=1, dur=0.2, cutoff=6000|
+SynthDef(\snare, {|freq=180, amp=1, dur=0.2, cutoff=6000, out=0|
 	var snarenoise, snareosc, snareenv, snareout, env, signal;
 	env = EnvGen.ar(Env.perc(level:amp, attackTime:0.0001, releaseTime:dur), doneAction:2);
 	signal = SinOsc.ar(freq);
 	//snareenv = EnvGen.ar(Env.new([0,1,0.25,0.25,0], [0.01,0.02,0.2,0.1]), doneAction:2);
 	snareout = env * (signal + LPF.ar(WhiteNoise.ar(1),cutoff));
-	Out.ar(0, Pan2.ar(snareout, 0));
+	Out.ar(out, Pan2.ar(snareout, 0));
 }).send(s);
 
 SynthDef(\risset, {|out= 0, pan= 0, freq= 400, amp= 0.1, dur= 2, t_trig= 1|
@@ -182,6 +209,10 @@ SynthDef(\bassDrum, {|freq=35.0, amp=1, pan=0.0, dur=1, out=0|
 			signal = env*SinOsc.ar(Line.kr(1, 0, 0.05, 2*freq, freq));
 			signal = Pan2.ar(signal, pan);
 			Out.ar(out, signal);
+		}).send(s);
+
+SynthDef(\feedback_delay, {|in=2, out=0, delay=0.2, decay=6|
+	Out.ar(out, In.ar(in, 2) + CombL.ar(In.ar(in, 2), delay, delay, decay));
 		}).send(s);
 SynthDef(\omgcompress, {|in=2, out=0|
 			Out.ar(out, Compander.ar(In.ar(in,2), In.ar(in, 2), thresh: 0.7, slopeBelow: 1, slopeAbove: 0.2, clampTime: 0.01, relaxTime:0.01));
@@ -218,17 +249,15 @@ SynthDef(\omgflange, {|in=2, out=0, freq=0.2, amp=0.0025, center=0.009325|
 			Out.ar(out, 1* In.ar(in,2) +  DelayC.ar(In.ar(in,2), 0.2, SinOsc.kr(freq, 0, amp, center)));
 			}).send(s);
 
-SynthDef(\simpleSynth, {|freq=220.0, amp=0.2, dur=1.0, pan=0.0, out=0|
-	var signal, env, harmonics;
-	harmonics = 6;
-	env = EnvGen.ar(Env.new(levels: [0, 1.0, 0.8, 0.8, 0], times: [0.01, 0.01, dur-0.02, 1]), doneAction:2);
-	signal = Mix.fill(harmonics, {|i|
-		env * SinOsc.ar(freq*(i+1), 1.0.rand, amp * harmonics.reciprocal * harmonics.reciprocal/(i+1));
-	});
-	//signal = LPF.ar(signal, SinOsc.kr(rrand(0.1,1.0), 1.0.rand, 2000, )+2100);
-	signal = Pan2.ar(signal, pan);
+SynthDef(\freqySynth, {| freq=220.0, wahfreq=1, attack=0.01, amp=0.2, dur=1.0, pan=0.0, out=0, harm=10|
+	var signal, env, harmonics = 50;
+	env = EnvGen.ar(Env.perc(attack, dur), doneAction:2);
+	signal = Klang.ar(`[ Array.fill(harmonics, {arg i; freq * (i+1)}), Array.fill(harmonics, {arg i; amp / (i+1)}), Array.fill(harmonics, {arg i; 6.28.rand()})]);
+	signal = BPeakEQ.ar(signal, SinOsc.ar(wahfreq, 6.28.rand, 200, 640), 0.2, 18);
+	signal = env * Pan2.ar(signal, pan);
 	Out.ar(out, signal);
 }).send(s);
+
 
 SynthDef(\detunedSimpleSynth, {|freq=220.0, amp=0.01, dur=0.5, pan=0.0|
 	var signal, env, harmonics, freq1, freq2, freq3;
@@ -418,9 +447,9 @@ t = Task({
 		var freqs = [30, 34, 37, 42, 46, 49];
 		var f1, f2, f3, index;
 		index = freqs.size.rand();
-		f1 = freqs.removeAt(index);
+		f1 = freqs.at(index);
 		index = freqs.size.rand();
-		f2 = freqs.removeAt(index);
+		f2 = freqs.at(index);
 		index = freqs.size.rand();
 		f3 = freqs.removeAt(index);
 		Synth(\drone, [\freq1, f1.midicps(1+0.002.rand2()), \freq2, f1.midicps*(1+0.002.rand2())]);

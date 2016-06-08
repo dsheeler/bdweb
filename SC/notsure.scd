@@ -36,3 +36,8 @@ fork{
 	in = (in*0.2) + GVerb.ar(in, 220, 12, mul:0.6);
 	ReplaceOut.ar(0, Limiter.ar(LeakDC.ar(in)))
 }.play(addAction:\addToTail)
+
+
+({
+	Out.ar(0, SinOsc.ar()!2);
+}.play();)

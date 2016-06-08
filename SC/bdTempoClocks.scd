@@ -11,7 +11,7 @@ var freq,amp,dur,freqs1,freqs2,boobs,freq2,ltemps,htemps,tmpv,tmpv2;
 //s.sendMsg("\s_new", "omgdist", a = s.nextNodeID, 1, 1, "in", ~d, "out", 0);
 
 Synth(\omgdist2, [\in, ~d, \out, 0, \type, 1, \drive, 3, \amp, 1]);
-
+Synth(\feedback_delay, [\in, ~d]);
 
 
 htemps = List[7,10];
@@ -36,7 +36,7 @@ t.schedAbs(t.beats.ceil, { arg beat, sec;
 	});
 	0.5
 });
-
+~d
 t.schedAbs(t.beats.ceil, { arg beat, sec;
 	/*tmpv = (beat % 32);
 	tmpv2 = (beat % 15);
@@ -45,10 +45,10 @@ t.schedAbs(t.beats.ceil, { arg beat, sec;
 	if((beat % 10) <= 9.5, {
 	if((beat % 2 == 0) , {
 		{
-		Synth(\ks_guitar, [\out, ~d, \rand, 0.2, \delayTime, t.beatDur,\note, 50.midicps]);
+		Synth(\ks_guitar, [\out, 0, \rand, 0.2, \delayTime, t.beatDur,\note, 50.midicps]);
 	    0.1.wait;
-		Synth(\ks_guitar, [\out, ~d, \rand, 0.2, \delayTime, t.beatDur,\note, 57.midicps]);
-			/*s.sendMsg("\s_new", "ks_guitar", a = s.nextNodeID, 1, 1, "note", 40.midicps, "rand", 1.6, "delayTime", 10.0, "out", ~d);
+		Synth(\ks_guitar, [\out, ~d, \rand, 1.6, \delayTime, 0.8,\note, 38.midicps]);
+			s.sendMsg("\s_new", "ks_guitar", a = s.nextNodeID, 1, 1, "note", 38.midicps, "rand", 1.6, "delayTime", 0.8, "out", ~d);
 		0.02.wait;
 		s.sendMsg("\s_new", "ks_guitar", a = s.nextNodeID, 1, 1, "note", 44.midicps, "rand", 0.6, "delayTime", 10.0, "out", ~d);
 		0.02.wait;
@@ -122,7 +122,7 @@ t.schedAbs(t.beats.ceil, { arg beat, sec;
 	if(((beat + 4) % 8 == 0) || (beat % 8 == 2), {
 
 			s.sendMsg("\s_new", "bassDrum", a = s.nextNodeID, 1, 1, "amp", 0.86);
-			s.sendMsg("\s_new", "ws_drum", b = s.nextNodeID, 1, 1, "freq", 50, "amp", 0.86);
+			s.sendMsg("\s_new", "ws_drum", b = s.nextNodeID, 1, 1, "freq", 60, "amp", 2);
 	});
 
 	if((beat % 8 == 0) || (beat % 32 == 1) || (beat % 32 == 2) || (beat % 32 == 3), {

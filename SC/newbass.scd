@@ -48,7 +48,7 @@ SynthDef(\bass, { |outbus, midinote = 42|
 )
 
 (
-TempoClock.default.tempo = 1.8;
+TempoClock.default.tempo = 6;
 
 Pbind(
   \instrument, \bass,

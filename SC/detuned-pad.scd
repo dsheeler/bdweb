@@ -138,8 +138,8 @@ Pbind(
 (
 SynthDef(\simpSaw4, {|freq, gate=1|
 	var adsr = EnvGen.ar(Env.adsr(1e-8,1e-6,0.75,0.125), gate, doneAction:2);
-	var nvoices1 = 5, nvoices2 = 7;
-	var detune1 = 12, detune2 = 8;
+	var nvoices1 = 10, nvoices2 = 10;
+	var detune1 = 48, detune2 = 32;
 
 	var osc1 = {
 		var m = 2**(detune1/1200).rand2;
@@ -153,7 +153,7 @@ SynthDef(\simpSaw4, {|freq, gate=1|
 		DelayC.ar(LFSaw.ar(m * freq), 0.02, freq.reciprocal.rand * lfo);
 	}.dup(nvoices2);
 
-	var snd = BLowPass4.ar(osc1, 800, 0.5) + osc2 / 4;
+	var snd = BLowPass4.ar(osc1, 400, 0.5) + osc2 / 4;
 	Out.ar(0, Splay.ar(snd*adsr));
 }).add;
 )
